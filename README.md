@@ -51,3 +51,8 @@ int main(int argc, char const *argv[])
 ## License
 
 This code is *open source* software released under the permissive ISC license. See the LICENSE file for details.
+
+## Links
+
+- A good alternative to pfasta that also parses FASTQ files is [kseq.h](https://github.com/lh3/seqtk).
+- Please submit bugs at [GitHub](https://github.com/kloetzl/pfasta/issues)
