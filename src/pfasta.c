@@ -22,29 +22,29 @@
 #define PF_FAIL_STR(str) do{pf->errno__=0;pf->errstr=str;return_code=-1;goto fail;}while(0)
 
 
-int binit( pfasta_file *pf);
-int bpeek( const pfasta_file *pf);
-int badv( pfasta_file *pf);
-ssize_t bread( pfasta_file *pf);
+static int binit( pfasta_file *pf);
+static inline int bpeek( const pfasta_file *pf);
+static inline int badv( pfasta_file *pf);
+static ssize_t bread( pfasta_file *pf);
 
 typedef struct dynstr {
 	char *str;
 	size_t capacity, count;
 } dynstr;
 
-void *reallocarray(void *optr, size_t nmemb, size_t size);
-int dynstr_init( dynstr *ds);
-int dynstr_put( dynstr *ds, char c);
-void dynstr_free( dynstr *ds);
-char *dynstr_move( dynstr *ds);
-size_t dynstr_len( const dynstr *ds);
+static inline void *reallocarray(void *optr, size_t nmemb, size_t size);
+static inline int dynstr_init( dynstr *ds);
+static inline int dynstr_put( dynstr *ds, char c);
+static inline void dynstr_free( dynstr *ds);
+static inline char *dynstr_move( dynstr *ds);
+static inline size_t dynstr_len( const dynstr *ds);
 
 ssize_t pfasta_read_name( pfasta_file *pf, pfasta_seq *ps);
 ssize_t pfasta_read_comment( pfasta_file *pf, pfasta_seq *ps);
 ssize_t pfasta_read_seq( pfasta_file *pf, pfasta_seq *ps);
 
 
-int binit( pfasta_file *pf){
+static int binit( pfasta_file *pf){
 	char *buffer = malloc(BUFFERSIZE);
 	if(!buffer) PF_EXIT_ERRNO();
 
@@ -53,14 +53,14 @@ int binit( pfasta_file *pf){
 	return 0;
 }
 
-int bpeek( const pfasta_file *pf){
+static inline int bpeek( const pfasta_file *pf){
 	if( pf->readptr < pf->fillptr){
 		return (int) *(pf->readptr);
 	}
 	return EOF;
 }
 
-int badv( pfasta_file *pf){
+static inline int badv( pfasta_file *pf){
 	if( pf->readptr < pf->fillptr - 1){
 		pf->readptr++;
 		return 0;
@@ -71,7 +71,7 @@ int badv( pfasta_file *pf){
 	return 0;
 }
 
-ssize_t bread( pfasta_file *pf){
+static ssize_t bread( pfasta_file *pf){
 	ssize_t count = read( pf->fd, pf->buffer, BUFFERSIZE);
 	if( count < 0) PF_EXIT_ERRNO();
 	if( count == 0){ // EOF
@@ -264,7 +264,7 @@ const char *pfasta_strerror( const pfasta_file *pf){
 
 
 
-int dynstr_init( dynstr *ds){
+static inline int dynstr_init( dynstr *ds){
 	*ds = (dynstr){ NULL, 0, 0};
 	ds->str = malloc(61);
 	if( !ds->str) return -1;
@@ -273,7 +273,7 @@ int dynstr_init( dynstr *ds){
 	return 0;
 }
 
-int dynstr_put( dynstr *ds, char c){
+static inline int dynstr_put( dynstr *ds, char c){
 	if( ds->count >= ds->capacity -1 ){
 		char *neu = reallocarray(ds->str, ds->capacity /2, 3);
 		if(!neu){
@@ -288,20 +288,20 @@ int dynstr_put( dynstr *ds, char c){
 	return 0;
 }
 
-void dynstr_free( dynstr *ds){
+static inline void dynstr_free( dynstr *ds){
 	free(ds->str);
 	*ds = (dynstr){ NULL, 0, 0};
 }
 
 
-char *dynstr_move( dynstr *ds){
+static inline char *dynstr_move( dynstr *ds){
 	char *out = ds->str;
 	out[ds->count] = '\0';
 	*ds = (dynstr){ NULL, 0, 0};
 	return out;
 }
 
-size_t dynstr_len( const dynstr *ds){
+static inline size_t dynstr_len( const dynstr *ds){
 	return ds->count;
 }
 
@@ -313,6 +313,7 @@ size_t dynstr_len( const dynstr *ds){
  */
 #define MUL_NO_OVERFLOW	((size_t)1 << (sizeof(size_t) * 4))
 
+static inline
 void *
 reallocarray(void *optr, size_t nmemb, size_t size)
 {
