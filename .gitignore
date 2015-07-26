@@ -27,6 +27,8 @@
 *.i*86
 *.x86_64
 *.hex
+gc_content
 
 # Debug files
 *.dSYM/
+perf.data*
