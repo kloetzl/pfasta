@@ -18,34 +18,41 @@ int main(int argc, const char *argv[]) {
 
 	for (;; firsttime = 0, argv++) {
 		FILE *in;
+		const char *filename;
 		if (!*argv) {
 			if (!firsttime)
 				exit(0);
 
 			in = stdin;
+			filename = "stdin";
 		} else {
 			in = fopen(*argv, "r");
 			if (!in)
 				err(1, "%s", *argv);
+			filename = *argv;
 		}
 
 		int l;
 		pfasta_file pf;
 		if ((l = pfasta_parse(&pf, in)) != 0) {
-			errx(1, "Parser initialization failed: %s\n", pfasta_strerror(&pf));
+			warnx("%s: Parser initialization failed: %s", filename, pfasta_strerror(&pf));
+			goto free_all;
 		}
 
 		pfasta_seq ps;
 		while ((l = pfasta_read(&pf, &ps)) == 0) {
 			printf("%s\t%lf\n", ps.name, gc(&ps));
+			pfasta_seq_free(&ps);
 		}
 
 		if (l < 0) {
-			errx(1, "Input parsing failed: %s\n", pfasta_strerror(&pf));
+			warnx("%s: Input parsing failed: %s", filename, pfasta_strerror(&pf));
+			goto free_all;
 		}
 
-		pfasta_seq_free(&ps);
+free_all:
 		pfasta_free(&pf);
+		pfasta_seq_free(&ps);
 		fclose(in);
 	}
 
