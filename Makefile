@@ -4,7 +4,7 @@ CPPFLAGS= -I src
 all: gc_content
 
 gc_content: examples/gc_content.o src/pfasta.o
-	$(CC) -o $@ $^
+	$(CC) $(CFLAGS) -o $@ $^
 
 pfasta: src/main.o src/pfasta.o
 	$(CC) -o $@ $^
