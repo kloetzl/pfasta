@@ -4,49 +4,52 @@ Even though [FASTA](https://en.wikipedia.org/wiki/FASTA_format) is probably
 one of the simplest data formats ever created, a surprising amount of things
 can do wrong when trying to parse a FASTA file. `pfasta` was designed with pedantic error handling: It detects a lot of errors and also makes it easy to print useful warnings.
 
-## Usage
+## API Usage
 
 Copy the `pfasta.h` and `pfasta.c` files into your project. You then have access
-to a number of simple functions to setup a parser and use it on files. An example says more than a thousand words:
+to a number of simple functions to setup a parser and use it on files. For a complete example on their usage see [examples/gc_content.c](examples/gc_content.c).
 
 ```c
-#include <stdio.h>
-#include "pfasta.h"
-
-int main(int argc, char const *argv[])
-{
-	if (argc == 1) {
-		fprintf(stderr, "Usage: %s FASTA...\n", argv[0]);
-		return 1;
-	}
-
-	argc -= 1, argv += 1;
-
-	while (argc--){
-		FILE* in = fopen(*argv++, "r");
-
-		pfasta_file pf;
-		pfasta_parse( &pf, in);
-
-		int l;
-		pfasta_seq ps;
-		while ((l = pfasta_read( &pf, &ps)) == 0) {
-			printf(">%s\n%9.9s\n", ps.name, ps.seq);
-		}
-
-		if( l < 0){
-			fprintf(stderr, "Input parsing failed: %s\n", pfasta_strerror(&pf));
-			return 1;
-		}
-
-		pfasta_seq_free(&ps);
-		pfasta_free(&pf);
-		fclose(in);
-	}
-
-	return 0;
-}
+typedef struct pfasta_file {
+	/* internal data */
+} pfasta_file;
 ```
+
+This structure holds a number of members to represent the state of the FASTA parser. Please make sure, that it is properly initialized before usage. Always free this structure when the parser is done.
+
+
+```c
+typedef struct pfasta_seq {
+	char *name, *comment, *seq;
+} pfasta_seq;
+```
+
+There is no magic to this structure. Its just a container of three strings. Feel free to duplicate or move them. But don't forget to free the structure after usage!
+
+```c
+int pfasta_parse( pfasta_file *, FILE *);
+```
+
+This function initializes a pfasta_file struct with a parser bound to a specific file. Iff successful, 0 is returned and the first parameter is properly initialized. On error a nonzero value is returned. A human-readable description of the problem can be obtained via `pfasta_sterror()`. In both cases the parser should be freed after usage.
+
+```c
+ssize_t pfasta_read( pfasta_file *, pfasta_seq *);
+```
+
+Using a properly initialized parser, this function can read FASTA sequences. These are stored in the simple structure passed via the second parameter. A nonzero return value indicates an error. In that case both the sequence and the parser are left in an undetermined state and should no longer be used, but freed.
+
+```c
+const char *pfasta_strerror( const pfasta_file *);
+```
+
+Like `strerror(3)` this functions returns a human readable description to to occurred error. This includes low-level IO errors as well as notifications about broken FASTA files.
+
+```c
+void pfasta_free( pfasta_file *);
+void pfasta_seq_free( pfasta_seq *);
+```
+
+These two functions free the resources allocated by the structures above. After freeing the structure itself can be reused.
 
 ## License
 
