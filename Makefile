@@ -1,14 +1,16 @@
 CFLAGS= -W -Wall -O3 -g -std=gnu99 -pedantic -ggdb
 CPPFLAGS= -I src
 
-all: gc_content
+EXECUTABLES= gc_content genFasta
+
+all: $(EXECUTABLES)
 
 gc_content: examples/gc_content.o src/pfasta.o
 	$(CC) $(CFLAGS) -o $@ $^
 
-pfasta: src/main.o src/pfasta.o
+genFasta: test/genFasta.o test/pcg_basic.o
 	$(CC) -o $@ $^
 
 .PHONY: clean
 clean:
-	rm -f src/*.o pfasta gc_content examples/*.o
+	rm -f $(EXECUTABLES) src/*.o examples/*.o test/*.o
