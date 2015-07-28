@@ -238,6 +238,7 @@ ssize_t pfasta_read_seq( pfasta_file *pf, pfasta_seq *ps){
 	}
 
 	ssize_t count = dynstr_len(&seq);
+	if( count == 0) PF_FAIL_STR("Empty sequence");
 	ps->seq = dynstr_move(&seq);
 	return count;
 
