@@ -220,6 +220,7 @@ ssize_t pfasta_read_seq( pfasta_file *pf, pfasta_seq *ps){
 
 		c = bpeek(pf);
 		if( c == EOF || c == '>') break;
+		if( c == '\n') PF_FAIL_STR("Blank lines are not allowed");
 
 		goto regular;
 
