@@ -16,7 +16,7 @@ int main(int argc, const char *argv[]) {
 
 	int firsttime = 1;
 
-	for (;; firsttime = 0, argv++) {
+	for (;; firsttime = 0) {
 		FILE *in;
 		const char *filename;
 		if (!*argv) {
@@ -26,10 +26,10 @@ int main(int argc, const char *argv[]) {
 			in = stdin;
 			filename = "stdin";
 		} else {
-			in = fopen(*argv, "r");
+			filename = *argv++;
+			in = fopen(filename, "r");
 			if (!in)
-				err(1, "%s", *argv);
-			filename = *argv;
+				err(1, "%s", filename);
 		}
 
 		int l;
