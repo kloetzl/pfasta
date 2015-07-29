@@ -111,6 +111,6 @@ void usage(){
 	static const char *str = {
 		"test_fasta [-l length] [-L line length] [-d dist]...\n"
 	};
-	errx(1,str);
+	errx(1, "%s", str);
 }
 
