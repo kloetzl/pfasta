@@ -36,7 +36,7 @@ int main(int argc, const char *argv[]) {
 		pfasta_file pf;
 		if ((l = pfasta_parse(&pf, in)) != 0) {
 			warnx("%s: Parser initialization failed: %s", filename, pfasta_strerror(&pf));
-			goto free_all;
+			goto fail;
 		}
 
 		pfasta_seq ps;
@@ -47,12 +47,11 @@ int main(int argc, const char *argv[]) {
 
 		if (l < 0) {
 			warnx("%s: Input parsing failed: %s", filename, pfasta_strerror(&pf));
-			goto free_all;
+			pfasta_seq_free(&ps);
 		}
 
-free_all:
+fail:
 		pfasta_free(&pf);
-		pfasta_seq_free(&ps);
 		fclose(in);
 	}
 
