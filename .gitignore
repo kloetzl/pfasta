@@ -29,6 +29,7 @@
 *.hex
 gc_content
 genFasta
+validate
 
 # Debug files
 *.dSYM/
