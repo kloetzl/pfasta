@@ -149,6 +149,11 @@ ssize_t pfasta_read( pfasta_file *pf, pfasta_seq *ps){
 	}
 	if( pfasta_read_seq(pf,ps) < 0) PF_EXIT_FORWARD();
 
+	// Skip blank lines
+	while( bpeek(pf) == '\n'){
+		if( badv(pf) != 0) PF_EXIT_FORWARD();
+	}
+
 	return 0;
 }
 
@@ -219,8 +224,7 @@ ssize_t pfasta_read_seq( pfasta_file *pf, pfasta_seq *ps){
 		if( badv(pf) != 0) PF_FAIL_FORWARD();
 
 		c = bpeek(pf);
-		if( c == EOF || c == '>') break;
-		if( c == '\n') PF_FAIL_STR("Blank lines are not allowed");
+		if( c == EOF || c == '>' || c == '\n') break;
 
 		goto regular;
 
