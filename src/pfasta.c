@@ -14,7 +14,6 @@
 #define BUFFERSIZE 4096
 
 #define PF_EXIT_ERRNO() do{pf->errno__=errno;pf->errstr=NULL;return errno;}while(0)
-#define PF_EXIT_STR(str) do{pf->errno__=0;pf->errstr=str;return -1;}while(0)
 #define PF_EXIT_FORWARD() return -1
 
 #define PF_FAIL_FORWARD() do{return_code=-1;goto fail;}while(0)
@@ -108,20 +107,22 @@ void pfasta_free( pfasta_file *pf){
 
 int pfasta_parse( pfasta_file *pf, FILE *in){
 	assert(pf && in);
+	int return_code = 0;
 
 	pf->errno__ = 0;
 	pf->buffer = pf->readptr = pf->fillptr = pf->errstr = NULL;
 
 	pf->fd = fileno(in);
-	if( pf->fd == -1) PF_EXIT_ERRNO();
+	if( pf->fd == -1) PF_FAIL_ERRNO();
 
-	if( binit(pf) != 0) PF_EXIT_FORWARD();
+	if( binit(pf) != 0) PF_FAIL_FORWARD();
 
 	int c = bpeek(pf);
-	if( c == EOF) PF_EXIT_STR("Empty file");
-	if( c != '>') PF_EXIT_STR("File does not start with '>'");
+	if( c == EOF) PF_FAIL_STR("Empty file");
+	if( c != '>') PF_FAIL_STR("File does not start with '>'");
 
-	return 0;
+fail:
+	return return_code;
 }
 
 
@@ -138,30 +139,32 @@ void pfasta_seq_free( pfasta_seq *ps){
 ssize_t pfasta_read( pfasta_file *pf, pfasta_seq *ps){
 	assert( pf && ps && pf->buffer);
 	*ps = (pfasta_seq){NULL,NULL,NULL};
+	int return_code = 0;
 
 
 	if( bpeek(pf) == EOF) return 1;
-	if( bpeek(pf) != '>') PF_EXIT_STR("Expected '>'");
+	if( bpeek(pf) != '>') PF_FAIL_STR("Expected '>'");
 
-	if( pfasta_read_name(pf,ps) < 0) PF_EXIT_FORWARD();
+	if( pfasta_read_name(pf,ps) < 0) PF_FAIL_FORWARD();
 	if( isblank(bpeek(pf))){
-		if( pfasta_read_comment(pf,ps) < 0) PF_EXIT_FORWARD();
+		if( pfasta_read_comment(pf,ps) < 0) PF_FAIL_FORWARD();
 	}
-	if( pfasta_read_seq(pf,ps) < 0) PF_EXIT_FORWARD();
+	if( pfasta_read_seq(pf,ps) < 0) PF_FAIL_FORWARD();
 
 	// Skip blank lines
 	while( bpeek(pf) == '\n'){
-		if( badv(pf) != 0) PF_EXIT_FORWARD();
+		if( badv(pf) != 0) PF_FAIL_FORWARD();
 	}
 
-	return 0;
+fail:
+	return return_code;
 }
 
 ssize_t pfasta_read_name( pfasta_file *pf, pfasta_seq *ps){
 	ssize_t return_code = 0;
 	int c;
 	dynstr name;
-	if( dynstr_init(&name) != 0) PF_EXIT_ERRNO();
+	if( dynstr_init(&name) != 0) PF_FAIL_ERRNO();
 
 	while( 1 ){
 		if( badv(pf) != 0) PF_FAIL_FORWARD();
@@ -189,7 +192,7 @@ ssize_t pfasta_read_comment( pfasta_file *pf, pfasta_seq *ps){
 	ssize_t return_code = 0;
 	int c;
 	dynstr comment;
-	if( dynstr_init(&comment) != 0) PF_EXIT_ERRNO();
+	if( dynstr_init(&comment) != 0) PF_FAIL_ERRNO();
 
 	while( 1 ){
 		if( badv(pf) != 0) PF_FAIL_FORWARD();
@@ -198,7 +201,7 @@ ssize_t pfasta_read_comment( pfasta_file *pf, pfasta_seq *ps){
 		if( c == EOF) PF_FAIL_STR("Unexpected EOF in sequence comment");
 		if( c == '\n') break;
 
-		if( dynstr_put(&comment, c) != 0) PF_EXIT_ERRNO();
+		if( dynstr_put(&comment, c) != 0) PF_FAIL_ERRNO();
 	}
 
 	ssize_t count = dynstr_len(&comment);
@@ -214,7 +217,7 @@ ssize_t pfasta_read_seq( pfasta_file *pf, pfasta_seq *ps){
 	ssize_t return_code = 0;
 	int c;
 	dynstr seq;
-	if( dynstr_init(&seq) != 0) PF_EXIT_ERRNO();
+	if( dynstr_init(&seq) != 0) PF_FAIL_ERRNO();
 
 
 	while(1) {
