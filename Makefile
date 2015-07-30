@@ -19,6 +19,4 @@ clean:
 	rm -f $(EXECUTABLES) src/*.o examples/*.o test/*.o
 
 check: genFasta validate
-	./genFasta | ./validate
-	./validate test/pass*
-	for f in $(shell ls test/fail*); do ! ./validate "test/$f"; done
+	bash test/driver.sh
