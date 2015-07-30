@@ -34,3 +34,6 @@ validate
 # Debug files
 *.dSYM/
 perf.data*
+
+# Project files
+pfasta.sublime-*
