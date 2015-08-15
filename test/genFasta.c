@@ -64,7 +64,16 @@ static const char *NO_G = "ACT";
 static const char *NO_T = "ACG";
 
 char base_acgt(){
-	unsigned idx = pcg32_boundedrand_r( &pcg32_base, 4);
+	static unsigned state = 0;
+	static unsigned counter = 0;
+	unsigned idx;
+	if( counter == 0){
+		state = pcg32_random_r(&pcg32_base);
+		counter = sizeof(unsigned int) / 4;
+	}
+	idx = state & 3;
+	state >>= 2;
+	counter--;
 	return ACGT[idx];
 }
 
