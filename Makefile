@@ -15,7 +15,7 @@ validate: examples/validate.o src/pfasta.o
 	$(CC) $(CFLAGS) -o $@ $^
 
 genFasta: test/genFasta.o test/pcg_basic.o
-	$(CC) -o $@ $^
+	$(CC) $(CFLAGS) -o $@ $^
 
 
 clean:
@@ -28,13 +28,21 @@ PASS= $(wildcard test/pass*)
 .PHONY: $(PASS) $(XFAIL)
 
 check: genFasta validate $(PASS) $(XFAIL)
+	@ for LENGTH in 1 2 3 10 100 1000 10000; do \
+		echo -n "testing with generated sequence of length $${LENGTH} … "; \
+		(./genFasta -l "$${LENGTH}" | ./validate) || \
+		(echo " Unexpected error: $@\n See $(LOGFILE) for details." && exit 1); \
+		echo "pass."; \
+	done
 
 $(PASS): validate
 	@echo -n "testing $@ … "
-	@./validate $@ &> $(LOGFILE) || (echo " Unexpected error: $@\n See $(LOGFILE) for details." && exit 1)
+	@./validate $@ &> $(LOGFILE) || \
+		(echo " Unexpected error: $@\n See $(LOGFILE) for details." && exit 1)
 	@echo "pass."
 
 $(XFAIL): validate
 	@echo -n "testing $@ … "
-	@! ./validate $@ &> $(LOGFILE) || (echo " Unexpected pass: $@\n See $(LOGFILE) for details." && exit 1)
+	@! ./validate $@ &> $(LOGFILE) || \
+		(echo " Unexpected pass: $@\n See $(LOGFILE) for details." && exit 1)
 	@echo "expected fail."
