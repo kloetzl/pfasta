@@ -34,6 +34,7 @@ check: genFasta validate $(PASS) $(XFAIL)
 		(echo " Unexpected error: $@\n See $(LOGFILE) for details." && exit 1); \
 		echo "pass."; \
 	done
+	rm -f $(LOGFILE)
 
 $(PASS): validate
 	@echo -n "testing $@ … "
