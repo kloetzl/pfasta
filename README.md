@@ -36,7 +36,7 @@ This function initializes a pfasta_file struct with a parser bound to a specific
 ssize_t pfasta_read( pfasta_file *, pfasta_seq *);
 ```
 
-Using a properly initialized parser, this function can read FASTA sequences. These are stored in the simple structure passed via the second parameter. A nonzero return value indicates an error. In that case both the sequence and the parser are left in an undetermined state and should no longer be used, but freed.
+Using a properly initialized parser, this function can read FASTA sequences. These are stored in the simple structure passed via the second parameter. A nonzero return value indicates an error (`1` means `EOF`). In that case both the sequence and the parser are left in an undetermined state and should no longer be used, but freed.
 
 ```c
 const char *pfasta_strerror( const pfasta_file *);
