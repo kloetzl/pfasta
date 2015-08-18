@@ -4,6 +4,16 @@ Even though [FASTA](https://en.wikipedia.org/wiki/FASTA_format) is probably
 one of the simplest data formats ever created, a surprising amount of things
 can do wrong when trying to parse a FASTA file. `pfasta` was designed with pedantic error handling: It detects a lot of errors and also makes it easy to print useful warnings.
 
+## Grammar
+
+A FASTA file contains one or more sequences. Each sequence consists of a header line with a name and an optional comment. Then follow multiple lines with the data. Here is a regex explaining what sequences are considered valid.
+
+    >[:graph:]+([^\n]*)\n
+    ([:print:]+\n)+
+    \n*
+
+`[:graph]` and `[:print:]` refer to the character classes defined by their respective C functions `isgraph(3)` and `isprint(3)`.
+
 ## API Usage
 
 Copy the `pfasta.h` and `pfasta.c` files into your project. You then have access
@@ -42,7 +52,7 @@ Using a properly initialized parser, this function can read FASTA sequences. The
 const char *pfasta_strerror( const pfasta_file *);
 ```
 
-Like `strerror(3)` this functions returns a human readable description to to occurred error. This includes low-level IO errors as well as notifications about broken FASTA files.
+Like `strerror(3)` this functions returns a human readable description to the occurred error. This includes low-level IO errors as well as notifications about broken FASTA files.
 
 ```c
 void pfasta_free( pfasta_file *);
