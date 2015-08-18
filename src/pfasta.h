@@ -14,12 +14,11 @@ typedef struct pfasta_seq {
 	char *name, *comment, *seq;
 } pfasta_seq;
 
+int pfasta_parse(pfasta_file *, FILE *);
+void pfasta_free(pfasta_file *);
+void pfasta_seq_free(pfasta_seq *);
+int pfasta_read(pfasta_file *, pfasta_seq *);
 
-int pfasta_parse( pfasta_file *, FILE *);
-void pfasta_free( pfasta_file *);
-void pfasta_seq_free( pfasta_seq *);
-ssize_t pfasta_read( pfasta_file *, pfasta_seq *);
-
-const char *pfasta_strerror( const pfasta_file *);
+const char *pfasta_strerror(const pfasta_file *);
 
 #endif /* PFASTA_H */
