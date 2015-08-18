@@ -30,7 +30,7 @@ PASS= $(wildcard test/pass*)
 check: genFasta validate $(PASS) $(XFAIL)
 	@ for LENGTH in 1 2 3 10 100 1000 10000; do \
 		echo -n "testing with generated sequence of length $${LENGTH} … "; \
-		(./genFasta -l "$${LENGTH}" | ./validate) || \
+		(./genFasta -l "$${LENGTH}" | ./validate 2> $(LOGFILE) ) || \
 		(echo " Unexpected error: $@\n See $(LOGFILE) for details." && exit 1); \
 		echo "pass."; \
 	done
@@ -38,12 +38,12 @@ check: genFasta validate $(PASS) $(XFAIL)
 
 $(PASS): validate
 	@echo -n "testing $@ … "
-	@./validate $@ &> $(LOGFILE) || \
+	@./validate $@ 2> $(LOGFILE) || \
 		(echo " Unexpected error: $@\n See $(LOGFILE) for details." && exit 1)
 	@echo "pass."
 
 $(XFAIL): validate
 	@echo -n "testing $@ … "
-	@! ./validate $@ &> $(LOGFILE) || \
+	@! ./validate $@ 2> $(LOGFILE) || \
 		(echo " Unexpected pass: $@\n See $(LOGFILE) for details." && exit 1)
 	@echo "expected fail."
