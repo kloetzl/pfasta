@@ -43,7 +43,7 @@ int pfasta_parse( pfasta_file *, FILE *);
 This function initializes a pfasta_file struct with a parser bound to a specific file. Iff successful, 0 is returned and the first parameter is properly initialized. On error a nonzero value is returned. A human-readable description of the problem can be obtained via `pfasta_sterror()`. In both cases the parser should be freed after usage.
 
 ```c
-ssize_t pfasta_read( pfasta_file *, pfasta_seq *);
+int pfasta_read( pfasta_file *, pfasta_seq *);
 ```
 
 Using a properly initialized parser, this function can read FASTA sequences. These are stored in the simple structure passed via the second parameter. A nonzero return value indicates an error (`1` means `EOF`). In that case both the sequence and the parser are left in an undetermined state and should no longer be used, but freed.
