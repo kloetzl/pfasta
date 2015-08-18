@@ -266,14 +266,13 @@ cleanup:
 
 int pfasta_read_name(pfasta_file *pf, pfasta_seq *ps) {
 	int return_code = 0;
-	int c;
 	dynstr name;
 	if (dynstr_init(&name) != 0) PF_FAIL_ERRNO();
 
 	while (1) {
 		if (buffer_adv(pf) != 0) PF_FAIL_FORWARD();
 
-		c = buffer_peek(pf);
+		int c = buffer_peek(pf);
 		if (c == EOF) PF_FAIL_STR("Unexpected EOF in sequence name");
 		if (!isgraph(c)) break;
 
@@ -291,14 +290,13 @@ cleanup:
 
 int pfasta_read_comment(pfasta_file *pf, pfasta_seq *ps) {
 	int return_code = 0;
-	int c;
 	dynstr comment;
 	if (dynstr_init(&comment) != 0) PF_FAIL_ERRNO();
 
 	while (1) {
 		if (buffer_adv(pf) != 0) PF_FAIL_FORWARD();
 
-		c = buffer_peek(pf);
+		int c = buffer_peek(pf);
 		if (c == EOF) PF_FAIL_STR("Unexpected EOF in sequence comment");
 		if (c == '\n') break;
 
@@ -314,7 +312,6 @@ cleanup:
 
 int pfasta_read_seq(pfasta_file *pf, pfasta_seq *ps) {
 	int return_code = 0;
-	int c;
 	dynstr seq;
 	if (dynstr_init(&seq) != 0) PF_FAIL_ERRNO();
 
@@ -324,7 +321,7 @@ int pfasta_read_seq(pfasta_file *pf, pfasta_seq *ps) {
 		// deal with the first character explicitly
 		if (buffer_adv(pf) != 0) PF_FAIL_FORWARD();
 
-		c = buffer_peek(pf);
+		int c = buffer_peek(pf);
 		if (c == EOF || c == '>' || c == '\n') break;
 
 		goto regular;
