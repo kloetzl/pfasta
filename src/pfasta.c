@@ -302,6 +302,7 @@ cleanup:
 }
 
 const char *pfasta_strerror(const pfasta_file *pf) {
+	if (!pf) return NULL;
 	if (pf->errno__ == 0) {
 		return pf->errstr;
 	} else {
