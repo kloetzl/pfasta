@@ -19,22 +19,21 @@ int main(int argc, const char *argv[]) {
 		FILE *in;
 		const char *filename;
 		if (!*argv) {
-			if (!firsttime)
-				exit(exit_code);
+			if (!firsttime) exit(exit_code);
 
 			in = stdin;
 			filename = "stdin";
 		} else {
 			filename = *argv++;
 			in = fopen(filename, "r");
-			if (!in)
-				err(1, "%s", filename);
+			if (!in) err(1, "%s", filename);
 		}
 
 		int l;
 		pfasta_file pf;
 		if ((l = pfasta_parse(&pf, in)) != 0) {
-			warnx("%s: Parser initialization failed: %s", filename, pfasta_strerror(&pf));
+			warnx("%s: Parser initialization failed: %s", filename,
+			      pfasta_strerror(&pf));
 			exit_code = EXIT_FAILURE;
 			goto fail;
 		}
@@ -45,12 +44,13 @@ int main(int argc, const char *argv[]) {
 		}
 
 		if (l < 0) {
-			warnx("%s: Input parsing failed: %s", filename, pfasta_strerror(&pf));
+			warnx("%s: Input parsing failed: %s", filename,
+			      pfasta_strerror(&pf));
 			exit_code = EXIT_FAILURE;
 			pfasta_seq_free(&ps);
 		}
 
-fail:
+	fail:
 		pfasta_free(&pf);
 		fclose(in);
 	}
