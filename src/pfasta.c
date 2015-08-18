@@ -114,6 +114,14 @@ int pfasta_read_seq(pfasta_file *pf, pfasta_seq *ps);
  * end-of-file is technically a successful read, EOF is instead signalled by
  * `buffer_peek`.
  */
+
+/** @brief Initialises the read buffer. First, memory is allocated and then
+ * filled. Both operations may fail. But this ensure we detect problems with
+ * an unreadable file at the the initialisation of the parser!
+ *
+ * @param pf - The parser we want to initialise.
+ * @returns 0 iff successful.
+ */
 static int buffer_init(pfasta_file *pf) {
 	char *buffer = malloc(BUFFERSIZE);
 	if (!buffer) PF_EXIT_ERRNO();
@@ -123,6 +131,11 @@ static int buffer_init(pfasta_file *pf) {
 	return 0;
 }
 
+/** @brief Returns the current character or EOF.
+ *
+ * @param pf - The parser to read from.
+ * @returns The current character or EOF.
+ */
 static inline int buffer_peek(const pfasta_file *pf) {
 	if (pf->readptr < pf->fillptr) {
 		return (int)*(pf->readptr);
@@ -130,6 +143,13 @@ static inline int buffer_peek(const pfasta_file *pf) {
 	return EOF;
 }
 
+/** @brief Advances the read pointer in the buffer to the next character. If
+ * needed, the buffer is filled with fresh bytes. A non-zero value is returned
+ * if reading fails.
+ *
+ * @param pf - The parser which should be advanced.
+ * @returns 0 iff successful.
+ */
 static inline int buffer_adv(pfasta_file *pf) {
 	if (pf->readptr < pf->fillptr - 1) {
 		pf->readptr++;
@@ -141,6 +161,11 @@ static inline int buffer_adv(pfasta_file *pf) {
 	return 0;
 }
 
+/** @brief Fills the buffer with new data.
+ *
+ * @param pf - The parser which should be updated.
+ * @returns 0 iff successful.
+ */
 static int buffer_read(pfasta_file *pf) {
 	ssize_t count = read(pf->fd, pf->buffer, BUFFERSIZE);
 	if (count < 0) PF_EXIT_ERRNO();
@@ -156,6 +181,11 @@ static int buffer_read(pfasta_file *pf) {
 	return 0;
 }
 
+/** @brief Frees all data associated with a parser. Also nulls pointers to avoid
+ * a potential double-free.
+ *
+ * @param pf - The parser that shall be freed.
+ */
 void pfasta_free(pfasta_file *pf) {
 	if (!pf) return;
 	free(pf->buffer);
@@ -164,6 +194,14 @@ void pfasta_free(pfasta_file *pf) {
 	pf->fd = -1;
 }
 
+/** @brief Creates a new parser for the given file. This includes allocating the
+ * buffer and reading the first few bytes. These are then used to break on empty
+ * or non-FASTA files.
+ *
+ * @param pf - A pointer to the parser structure we intend to initialise. No
+ * assumption is made about the referenced memory except its existence.
+ * @returns 0 iff successful.
+ */
 int pfasta_parse(pfasta_file *pf, FILE *in) {
 	assert(pf && in);
 	int return_code = 0;
@@ -184,6 +222,7 @@ cleanup:
 	return return_code;
 }
 
+/** @brief Frees the memory of a FASTA sequence. **/
 void pfasta_seq_free(pfasta_seq *ps) {
 	if (!ps) return;
 	free(ps->name);
@@ -192,6 +231,16 @@ void pfasta_seq_free(pfasta_seq *ps) {
 	ps->name = ps->comment = ps->seq = NULL;
 }
 
+/** @brief Reads the next sequence from the parser into the memory pointed to by
+ * the parameter `ps`. This may fail for various reasons. No matter, what
+ * happens, always free `ps` after usage!
+ *
+ * @param pf - The parser to read from.
+ * @param ps - A reference to memory for the sequence data.
+ *
+ * @returns 0 if successful, 1 if the end of the file was reached and a negative
+ * number on error.
+ */
 int pfasta_read(pfasta_file *pf, pfasta_seq *ps) {
 	assert(pf && ps && pf->buffer);
 	*ps = (pfasta_seq){NULL, NULL, NULL};
