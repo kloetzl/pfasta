@@ -264,6 +264,13 @@ cleanup:
 	return return_code;
 }
 
+/** @brief Reads the sequence name and saves it into the structure.
+ *
+ * @param pf - The parser used for reading.
+ * @param ps - The structure used to hold the name, later.
+ *
+ * @returns 0 iff successful
+ */
 int pfasta_read_name(pfasta_file *pf, pfasta_seq *ps) {
 	int return_code = 0;
 	dynstr name;
@@ -288,6 +295,13 @@ cleanup:
 	return return_code;
 }
 
+/** @brief Reads the sequence comment and saves it into the structure.
+ *
+ * @param pf - The parser used for reading.
+ * @param ps - The structure used to hold the comment, later.
+ *
+ * @returns 0 iff successful
+ */
 int pfasta_read_comment(pfasta_file *pf, pfasta_seq *ps) {
 	int return_code = 0;
 	dynstr comment;
@@ -310,6 +324,13 @@ cleanup:
 	return return_code;
 }
 
+/** @brief Reads the sequence data and saves it into the structure.
+ *
+ * @param pf - The parser used for reading.
+ * @param ps - The structure used to hold the data, later.
+ *
+ * @returns 0 iff successful
+ */
 int pfasta_read_seq(pfasta_file *pf, pfasta_seq *ps) {
 	int return_code = 0;
 	dynstr seq;
@@ -347,6 +368,7 @@ cleanup:
 	return return_code;
 }
 
+/** @brief Returns an explanatory string for encountered errors. */
 const char *pfasta_strerror(const pfasta_file *pf) {
 	if (!pf) return NULL;
 	if (pf->errno__ == 0) {
@@ -356,6 +378,12 @@ const char *pfasta_strerror(const pfasta_file *pf) {
 	}
 }
 
+/** @brief Creates a new string that can grow dynamically.
+ *
+ * @param ds - A reference to the dynstr container.
+ *
+ * @returns 0 iff successful.
+ */
 static inline int dynstr_init(dynstr *ds) {
 	*ds = (dynstr){NULL, 0, 0};
 	ds->str = malloc(61);
@@ -365,6 +393,13 @@ static inline int dynstr_init(dynstr *ds) {
 	return 0;
 }
 
+/** @brief A append a character to a string.
+ *
+ * @param ds - A reference to the dynstr container.
+ * @param c - The new character.
+ *
+ * @returns 0 iff successful.
+ */
 static inline int dynstr_put(dynstr *ds, char c) {
 	if (ds->count >= ds->capacity - 1) {
 		char *neu = reallocarray(ds->str, ds->capacity / 2, 3);
@@ -380,10 +415,20 @@ static inline int dynstr_put(dynstr *ds, char c) {
 	return 0;
 }
 
+/** @brief Frees a dynamic string. */
 static inline void dynstr_free(dynstr *ds) {
+	if (!ds) return;
 	free(ds->str);
 	*ds = (dynstr){NULL, 0, 0};
 }
+
+/** @brief Returns the string as a standard `char*`. The internal reference is
+ * then deleted. Hence the name *move* as in *move semantics*.
+ *
+ * @param ds - The dynamic string to move from.
+ *
+ * @returns a `char*` to a standard null-terminated string.
+ */
 
 static inline char *dynstr_move(dynstr *ds) {
 	char *out = ds->str;
@@ -392,6 +437,7 @@ static inline char *dynstr_move(dynstr *ds) {
 	return out;
 }
 
+/** @brief Returns the current length of the dynamic string. */
 static inline size_t dynstr_len(const dynstr *ds) { return ds->count; }
 
 /***************
