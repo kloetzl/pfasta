@@ -1,6 +1,9 @@
 #include <err.h>
+#include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
+
 #include "pfasta.h"
 
 double gc(const pfasta_seq *ps);
@@ -17,23 +20,23 @@ int main(int argc, const char *argv[]) {
 	int firsttime = 1;
 
 	for (;; firsttime = 0) {
-		FILE *in;
-		const char *filename;
+		int file_descriptor;
+		const char *file_name;
 		if (!*argv) {
-			if (!firsttime) exit(0);
+			if (!firsttime) exit(exit_code);
 
-			in = stdin;
-			filename = "stdin";
+			file_descriptor = STDIN_FILENO;
+			file_name = "stdin";
 		} else {
-			filename = *argv++;
-			in = fopen(filename, "r");
-			if (!in) err(1, "%s", filename);
+			file_name = *argv++;
+			file_descriptor = open(file_name, O_RDONLY);
+			if (file_descriptor < 0) err(1, "%s", file_name);
 		}
 
 		int l;
 		pfasta_file pf;
-		if ((l = pfasta_parse(&pf, in)) != 0) {
-			warnx("%s: Parser initialization failed: %s", filename,
+		if ((l = pfasta_parse(&pf, file_descriptor)) != 0) {
+			warnx("%s: Parser initialization failed: %s", file_name,
 			      pfasta_strerror(&pf));
 			goto fail;
 		}
@@ -45,14 +48,14 @@ int main(int argc, const char *argv[]) {
 		}
 
 		if (l < 0) {
-			warnx("%s: Input parsing failed: %s", filename,
+			warnx("%s: Input parsing failed: %s", file_name,
 			      pfasta_strerror(&pf));
 			pfasta_seq_free(&ps);
 		}
 
 	fail:
 		pfasta_free(&pf);
-		fclose(in);
+		close(file_descriptor);
 	}
 
 	return 0;

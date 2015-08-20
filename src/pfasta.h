@@ -1,8 +1,6 @@
 #ifndef PFASTA_H
 #define PFASTA_H
 
-#include <stdio.h>
-
 typedef struct pfasta_file {
 	char *buffer, *readptr, *fillptr;
 	char *errstr;
@@ -14,7 +12,7 @@ typedef struct pfasta_seq {
 	char *name, *comment, *seq;
 } pfasta_seq;
 
-int pfasta_parse(pfasta_file *, FILE *);
+int pfasta_parse(pfasta_file *, int file_descriptor);
 void pfasta_free(pfasta_file *);
 void pfasta_seq_free(pfasta_seq *);
 int pfasta_read(pfasta_file *, pfasta_seq *);

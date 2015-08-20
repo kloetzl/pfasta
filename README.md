@@ -37,10 +37,12 @@ typedef struct pfasta_seq {
 There is no magic to this structure. Its just a container of three strings. Feel free to duplicate or move them. But don't forget to free the structure after usage!
 
 ```c
-int pfasta_parse( pfasta_file *, FILE *);
+int pfasta_parse( pfasta_file *, int);
 ```
 
-This function initializes a pfasta_file struct with a parser bound to a specific file. Iff successful, 0 is returned and the first parameter is properly initialized. On error a nonzero value is returned. A human-readable description of the problem can be obtained via `pfasta_sterror()`. In both cases the parser should be freed after usage.
+This function initializes a pfasta_file struct with a parser bound to a specific file descriptor. Iff successful, 0 is returned and the first parameter is properly initialized. On error a nonzero value is returned. A human-readable description of the problem can be obtained via `pfasta_sterror()`. In both cases the parser should be freed after usage.
+
+Please note that the user is responsible for opening the file descriptor as readable and closing after usage.
 
 ```c
 int pfasta_read( pfasta_file *, pfasta_seq *);

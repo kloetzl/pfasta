@@ -202,15 +202,13 @@ void pfasta_free(pfasta_file *pf) {
  * assumption is made about the referenced memory except its existence.
  * @returns 0 iff successful.
  */
-int pfasta_parse(pfasta_file *pf, FILE *in) {
-	assert(pf && in);
+int pfasta_parse(pfasta_file *pf, int file_descriptor) {
+	assert(pf && file_descriptor >= 0);
 	int return_code = 0;
 
 	pf->errno__ = 0;
 	pf->buffer = pf->readptr = pf->fillptr = pf->errstr = NULL;
-
-	pf->fd = fileno(in);
-	if (pf->fd == -1) PF_FAIL_ERRNO();
+	pf->fd = file_descriptor;
 
 	if (buffer_init(pf) != 0) PF_FAIL_FORWARD();
 
