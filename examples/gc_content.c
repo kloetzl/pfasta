@@ -23,7 +23,7 @@ int main(int argc, const char *argv[]) {
 		int file_descriptor;
 		const char *file_name;
 		if (!*argv) {
-			if (!firsttime) exit(exit_code);
+			if (!firsttime) exit(0);
 
 			file_descriptor = STDIN_FILENO;
 			file_name = "stdin";
