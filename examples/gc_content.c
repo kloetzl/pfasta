@@ -18,6 +18,7 @@ int main(int argc, const char *argv[]) {
 	argv += 1;
 
 	int firsttime = 1;
+	int exit_code = EXIT_SUCCESS;
 
 	for (;; firsttime = 0) {
 		int file_descriptor;
@@ -38,6 +39,7 @@ int main(int argc, const char *argv[]) {
 		if ((l = pfasta_parse(&pf, file_descriptor)) != 0) {
 			warnx("%s: Parser initialization failed: %s", file_name,
 			      pfasta_strerror(&pf));
+			exit_code = EXIT_FAILURE;
 			goto fail;
 		}
 
@@ -50,6 +52,7 @@ int main(int argc, const char *argv[]) {
 		if (l < 0) {
 			warnx("%s: Input parsing failed: %s", file_name,
 			      pfasta_strerror(&pf));
+			exit_code = EXIT_FAILURE;
 			pfasta_seq_free(&ps);
 		}
 
@@ -58,7 +61,7 @@ int main(int argc, const char *argv[]) {
 		close(file_descriptor);
 	}
 
-	return 0;
+	return exit_code;
 }
 
 // calculate the GC content
