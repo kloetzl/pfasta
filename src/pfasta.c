@@ -440,7 +440,7 @@ static inline size_t dynstr_len(const dynstr *ds) { return ds->count; }
 
 /***************
  * The following code was shamelessly stolen from the OpenBSD-libc.
- * It is released under MIT-style license.
+ * It is released under ISC license.
  ***************/
 
 /*
