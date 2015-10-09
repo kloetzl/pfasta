@@ -22,7 +22,7 @@ static pcg32_random_t pcg32_mut = PCG32_INITIALIZER;
 
 int main(int argc, char *argv[]) {
 	// in the worst case half of the arguments are divergences
-	double seqs[argc / 2];
+	double seqs[argc / 2 + 2];
 	size_t seq_n = 1;
 	seqs[0] = 0.0;
 
