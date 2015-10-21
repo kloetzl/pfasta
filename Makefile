@@ -47,9 +47,9 @@ check: genFasta validate $(PASS) $(XFAIL)
 	done
 	rm -f $(LOGFILE)
 
-$(PASS): validate
+$(PASS): noop
 	@echo -n "testing $@ … "
-	@./validate $@ 2> $(LOGFILE) || \
+	@./noop $@ | diff -bB - $@ 2> $(LOGFILE) || \
 		(echo " Unexpected error: $@\n See $(LOGFILE) for details." && exit 1)
 	@echo "pass."
 
