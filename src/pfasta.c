@@ -335,7 +335,8 @@ int pfasta_read_seq(pfasta_file *pf, pfasta_seq *ps) {
 	if (dynstr_init(&seq) != 0) PF_FAIL_ERRNO();
 
 	while (1) {
-		assert(buffer_peek(pf) == '\n');
+		// The only guaranty is !graph && !blank
+		assert(!isgraph(buffer_peek(pf)) && !isblank(buffer_peek(pf)));
 
 		// deal with the first character explicitly
 		if (buffer_adv(pf) != 0) PF_FAIL_FORWARD();
@@ -351,6 +352,7 @@ int pfasta_read_seq(pfasta_file *pf, pfasta_seq *ps) {
 
 			c = buffer_peek(pf);
 			if (c == '\n') break;
+			// check for EOF?
 
 		regular:
 			if (!isgraph(c)) PF_FAIL_STR("Unexpected character in sequence");
