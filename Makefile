@@ -1,4 +1,4 @@
-CFLAGS= -W -Wall -O3 -g -std=gnu99 -pedantic -ggdb # -fsanitize=address
+CFLAGS= -W -Wall -O3 -g -std=gnu99 -pedantic -ggdb
 CPPFLAGS= -I src
 
 EXECUTABLES= gc_content genFasta validate noop
@@ -20,9 +20,17 @@ genFasta: test/genFasta.o test/pcg_basic.o
 noop: examples/noop.o src/pfasta.o
 	$(CC) $(CFLAGS) -o $@ $^
 
+.PHONY: asan
+asan: CC=clang
+asan: CFLAGS= -W -Wall -O1 -g -ggdb -std=gnu99 -fsanitize=address
+asan: CPPFLAGS= -I src
+asan: all
+
+fuzzer: test/fuzz.cxx asan
+	clang++ -fsanitize=address -fsanitize-coverage=edge test/fuzz.cxx Fuzzer*.o src/pfasta.o -I src -o $@
 
 clean:
-	rm -f $(EXECUTABLES) src/*.o examples/*.o test/*.o $(LOGFILE)
+	rm -f $(EXECUTABLES) src/*.o examples/*.o test/*.o $(LOGFILE) fuzzer
 
 
 XFAIL= $(wildcard test/xfail*)

@@ -31,6 +31,7 @@ gc_content
 genFasta
 validate
 noop
+fuzzer
 
 # Debug files
 *.dSYM/
