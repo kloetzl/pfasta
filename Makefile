@@ -1,7 +1,7 @@
 CFLAGS= -W -Wall -O3 -g -std=gnu99 -pedantic -ggdb # -fsanitize=address
 CPPFLAGS= -I src
 
-EXECUTABLES= gc_content genFasta validate
+EXECUTABLES= gc_content genFasta validate noop
 
 LOGFILE= test.log
 
@@ -15,6 +15,9 @@ validate: examples/validate.o src/pfasta.o
 	$(CC) $(CFLAGS) -o $@ $^
 
 genFasta: test/genFasta.o test/pcg_basic.o
+	$(CC) $(CFLAGS) -o $@ $^
+
+noop: examples/noop.o src/pfasta.o
 	$(CC) $(CFLAGS) -o $@ $^
 
 

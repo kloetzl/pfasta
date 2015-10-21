@@ -30,6 +30,7 @@
 gc_content
 genFasta
 validate
+noop
 
 # Debug files
 *.dSYM/
