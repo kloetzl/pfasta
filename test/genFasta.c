@@ -50,6 +50,7 @@ int main(int argc, char *argv[]) {
 
 	uint64_t seed = time(NULL);
 	// getrandom(&seed, sizeof(seed), 0);
+	pcg32_srandom_r(&pcg32_mut, seed, 1729);
 
 	for (size_t i = 0; i < seq_n; i++) {
 		pcg32_srandom_r(&pcg32_base, seed, 1729);
