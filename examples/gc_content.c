@@ -24,7 +24,7 @@ int main(int argc, const char *argv[]) {
 		int file_descriptor;
 		const char *file_name;
 		if (!*argv) {
-			if (!firsttime) exit(0);
+			if (!firsttime) break;
 
 			file_descriptor = STDIN_FILENO;
 			file_name = "stdin";
@@ -37,8 +37,7 @@ int main(int argc, const char *argv[]) {
 		int l;
 		pfasta_file pf;
 		if ((l = pfasta_parse(&pf, file_descriptor)) != 0) {
-			warnx("%s: Parser initialization failed: %s", file_name,
-			      pfasta_strerror(&pf));
+			warnx("%s: %s", file_name, pfasta_strerror(&pf));
 			exit_code = EXIT_FAILURE;
 			goto fail;
 		}
@@ -50,8 +49,7 @@ int main(int argc, const char *argv[]) {
 		}
 
 		if (l < 0) {
-			warnx("%s: Input parsing failed: %s", file_name,
-			      pfasta_strerror(&pf));
+			warnx("%s: %s", file_name, pfasta_strerror(&pf));
 			exit_code = EXIT_FAILURE;
 			pfasta_seq_free(&ps);
 		}
