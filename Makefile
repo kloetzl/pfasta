@@ -5,7 +5,7 @@ EXECUTABLES= gc_content genFasta validate noop
 
 LOGFILE= test.log
 
-.PHONY: all clean check
+.PHONY: all clean check format
 all: $(EXECUTABLES)
 
 gc_content: examples/gc_content.o src/pfasta.o
@@ -19,6 +19,9 @@ genFasta: test/genFasta.o test/pcg_basic.o
 
 noop: examples/noop.o src/pfasta.o
 	$(CC) $(CFLAGS) -o $@ $^
+
+format:
+	clang-format -i src/*.c src/*.h
 
 .PHONY: asan
 asan: CC=clang
