@@ -370,7 +370,7 @@ int pfasta_read_seq(pfasta_file *pf, pfasta_seq *ps) {
 
 			c = buffer_peek(pf);
 			if (c == '\n') break;
-		// check for EOF?
+			if (c == EOF) break;
 
 		regular:
 			if (!isgraph(c)) {
