@@ -63,6 +63,10 @@ void pfasta_seq_free( pfasta_seq *);
 
 These two functions free the resources allocated by the structures above. After freeing the structure itself can be reused.
 
+## Releases
+
+This library is not released as a proper shared library. Instead, versioning is done via git tags. Just download the `pfasta.*` files for the latest tag.
+
 ## License
 
 This code is *open source* software released under the permissive ISC license. See the LICENSE file for details.
