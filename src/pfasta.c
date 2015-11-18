@@ -55,7 +55,7 @@
 	do {                                                                       \
 		pf->errno__ = errno;                                                   \
 		pf->errstr = NULL;                                                     \
-		return errno;                                                          \
+		return -2;                                                             \
 	} while (0)
 
 #define PF_EXIT_FORWARD() return -1
@@ -70,7 +70,7 @@
 	do {                                                                       \
 		pf->errno__ = errno;                                                   \
 		pf->errstr = NULL;                                                     \
-		return_code = errno;                                                   \
+		return_code = -2;                                                      \
 		goto cleanup;                                                          \
 	} while (0)
 
