@@ -32,6 +32,7 @@ genFasta
 validate
 noop
 fuzzer
+revcomp
 
 # Debug files
 *.dSYM/

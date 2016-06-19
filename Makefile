@@ -1,7 +1,7 @@
-CFLAGS= -W -Wall -O3 -g -std=gnu99 -pedantic -ggdb
+CFLAGS= -Wall -Wextra -O3 -g -std=gnu99 -pedantic -ggdb -march=native
 CPPFLAGS= -I src
 
-EXECUTABLES= gc_content genFasta validate noop
+EXECUTABLES= gc_content genFasta validate noop revcomp
 
 LOGFILE= test.log
 
@@ -18,6 +18,9 @@ genFasta: test/genFasta.o test/pcg_basic.o
 	$(CC) $(CFLAGS) -o $@ $^
 
 noop: examples/noop.o src/pfasta.o
+	$(CC) $(CFLAGS) -o $@ $^
+
+revcomp: examples/revcomp.o src/pfasta.o
 	$(CC) $(CFLAGS) -o $@ $^
 
 format:
