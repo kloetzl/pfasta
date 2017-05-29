@@ -54,8 +54,8 @@ void sv_emplace(pfasta_seq ps) {
 		sv.data[sv.size++] = ps;
 	} else {
 		// TODO: check for multiplication overflow
-		size_t new_cap = (sv.capacity / 2) * 3 * sizeof(pfasta_seq);
-		sv.data = realloc(sv.data, new_cap);
+		size_t new_cap = (sv.capacity / 2) * 3;
+		sv.data = realloc(sv.data, new_cap * sizeof(pfasta_seq));
 		if (!sv.data) err(errno, "realloc failed");
 		sv.capacity = new_cap;
 		sv.data[sv.size++] = ps;

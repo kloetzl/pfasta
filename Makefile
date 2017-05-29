@@ -1,7 +1,7 @@
 CFLAGS= -Wall -Wextra -O3 -g -std=gnu99 -pedantic -ggdb -march=native
 CPPFLAGS= -I src
 
-EXECUTABLES= gc_content genFasta validate noop revcomp
+EXECUTABLES= gc_content genFasta validate noop revcomp shuffle
 
 LOGFILE= test.log
 
@@ -21,6 +21,9 @@ noop: examples/noop.o src/pfasta.o
 	$(CC) $(CFLAGS) -o $@ $^
 
 revcomp: examples/revcomp.o src/pfasta.o
+	$(CC) $(CFLAGS) -o $@ $^
+
+shuffle: examples/shuffle.o src/pfasta.o
 	$(CC) $(CFLAGS) -o $@ $^
 
 format:
