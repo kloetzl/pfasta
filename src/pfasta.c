@@ -100,9 +100,12 @@ static inline void dynstr_free(dynstr *ds);
 static inline char *dynstr_move(dynstr *ds);
 static inline size_t dynstr_len(const dynstr *ds);
 
-int pfasta_read_name(pfasta_file *pf, pfasta_seq *ps);
-int pfasta_read_comment(pfasta_file *pf, pfasta_seq *ps);
-int pfasta_read_seq(pfasta_file *pf, pfasta_seq *ps);
+int pfasta_read_name(pfasta_file *pf, pfasta_seq *ps)
+    __attribute__((target_clones("sse4.2", "avx", "default")));
+int pfasta_read_comment(pfasta_file *pf, pfasta_seq *ps)
+    __attribute__((target_clones("sse4.2", "avx", "default")));
+int pfasta_read_seq(pfasta_file *pf, pfasta_seq *ps)
+    __attribute__((target_clones("sse4.2", "avx", "default")));
 
 /*
  * When reading from a buffer, basically three things can happen.

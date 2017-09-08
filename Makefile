@@ -1,4 +1,4 @@
-CFLAGS= -Wall -Wextra -O3 -g -std=gnu99 -pedantic -ggdb -march=native
+CFLAGS= -Wall -Wextra -O3 -g -std=gnu99 -pedantic -ggdb
 CPPFLAGS= -I src
 
 EXAMPLES= acgt concat gc_content noop revcomp shuffle validate
@@ -7,10 +7,10 @@ LOGFILE= test.log
 .PHONY: all clean check format
 all: $(EXAMPLES) genFasta
 
-$(EXAMPLES): %: examples/%.o src/pfasta.o
+$(EXAMPLES): %: src/pfasta.o examples/%.o
 	$(CC) $(CFLAGS) -o $@ $^
 
-genFasta: test/genFasta.o test/pcg_basic.o
+genFasta: test/pcg_basic.o test/genFasta.o
 	$(CC) $(CFLAGS) -o $@ $^
 
 format:

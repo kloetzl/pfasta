@@ -62,14 +62,14 @@ void pcg32_srandom_r(pcg32_random_t* rng, uint64_t initstate,
 //     Generate a uniformly distributed 32-bit random number
 
 uint32_t pcg32_random(void);
-uint32_t pcg32_random_r(pcg32_random_t* rng);
+uint32_t pcg32_random_r(pcg32_random_t* rng) __attribute__((target_clones("sse4.2","avx","default")));
 
 // pcg32_boundedrand(bound):
 // pcg32_boundedrand_r(rng, bound):
 //     Generate a uniformly distributed number, r, where 0 <= r < bound
 
 uint32_t pcg32_boundedrand(uint32_t bound);
-uint32_t pcg32_boundedrand_r(pcg32_random_t* rng, uint32_t bound);
+uint32_t pcg32_boundedrand_r(pcg32_random_t* rng, uint32_t bound) __attribute__((target_clones("sse4.2","avx","default")));
 
 #if __cplusplus
 }
