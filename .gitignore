@@ -27,12 +27,14 @@
 *.i*86
 *.x86_64
 *.hex
+acgt
+fuzzer
 gc_content
 genFasta
-validate
 noop
-fuzzer
 revcomp
+shuffle
+validate
 
 # Debug files
 *.dSYM/

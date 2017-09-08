@@ -1,30 +1,23 @@
 CFLAGS= -Wall -Wextra -O3 -g -std=gnu99 -pedantic -ggdb -march=native
 CPPFLAGS= -I src
 
-EXECUTABLES= gc_content genFasta validate noop revcomp shuffle
-
+EXECUTABLES= acgt gc_content genFasta noop revcomp shuffle validate 
 LOGFILE= test.log
 
 .PHONY: all clean check format
 all: $(EXECUTABLES)
 
+acgt: examples/acgt.o src/pfasta.o
 gc_content: examples/gc_content.o src/pfasta.o
-	$(CC) $(CFLAGS) -o $@ $^
-
-validate: examples/validate.o src/pfasta.o
-	$(CC) $(CFLAGS) -o $@ $^
-
 genFasta: test/genFasta.o test/pcg_basic.o
-	$(CC) $(CFLAGS) -o $@ $^
-
 noop: examples/noop.o src/pfasta.o
-	$(CC) $(CFLAGS) -o $@ $^
-
 revcomp: examples/revcomp.o src/pfasta.o
+shuffle: examples/shuffle.o src/pfasta.o
+validate: examples/validate.o src/pfasta.o
+
+$(EXECUTABLES):
 	$(CC) $(CFLAGS) -o $@ $^
 
-shuffle: examples/shuffle.o src/pfasta.o
-	$(CC) $(CFLAGS) -o $@ $^
 
 format:
 	clang-format -i src/*.c src/*.h
