@@ -1,20 +1,20 @@
 CFLAGS= -Wall -Wextra -O3 -g -std=gnu99 -pedantic -ggdb
 CPPFLAGS= -I src
 
-EXAMPLES= acgt concat gc_content noop revcomp shuffle validate
+TOOLS= acgt concat gc_content noop revcomp shuffle validate
 LOGFILE= test.log
 
-.PHONY: all clean check format
-all: $(EXAMPLES) genFasta
+.PHONY: all clean check format dist install install-lib install-tools
+all: $(TOOLS) genFasta
 
-$(EXAMPLES): %: src/pfasta.o examples/%.o
+$(TOOLS): %: src/pfasta.o tools/%.o
 	$(CC) $(CFLAGS) -o $@ $^
 
 genFasta: test/pcg_basic.o test/genFasta.o
 	$(CC) $(CFLAGS) -o $@ $^
 
 format:
-	clang-format -i src/*.c src/*.h
+	clang-format -i tools/*.c src/*.c src/*.h
 
 .PHONY: asan
 asan: CC=clang
@@ -26,7 +26,7 @@ fuzzer: test/fuzz.cxx asan
 	clang++ -fsanitize=address -fsanitize-coverage=edge test/fuzz.cxx Fuzzer*.o src/pfasta.o -I src -o $@
 
 clean:
-	rm -f $(EXECUTABLES) src/*.o examples/*.o test/*.o $(LOGFILE) fuzzer
+	rm -f $(TOOLS) genFasta src/*.o tools/*.o test/*.o $(LOGFILE) fuzzer
 
 
 XFAIL= $(wildcard test/xfail*)
