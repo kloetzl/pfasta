@@ -9,8 +9,7 @@
 
 static size_t line_length = 70;
 
-size_t strncpy_n(char *dest, const char *src, size_t n)
-{
+size_t strncpy_n(char *dest, const char *src, size_t n) {
 	size_t i = 0;
 	for (; i < n && *src; ++i) {
 		*dest++ = *src++;
@@ -18,8 +17,7 @@ size_t strncpy_n(char *dest, const char *src, size_t n)
 	return i;
 }
 
-void print_seq(const pfasta_seq *ps)
-{
+void print_seq(const pfasta_seq *ps) {
 	char line[line_length + 1];
 	const char *seq = ps->seq;
 
@@ -30,8 +28,7 @@ void print_seq(const pfasta_seq *ps)
 	}
 }
 
-int main(int argc, const char *argv[])
-{
+int main(int argc, const char *argv[]) {
 
 	if (argc == 2 && argv[1][0] == '-' && argv[1][1] == 'h') {
 		fprintf(stderr, "Usage: %s [FASTA...]\n", argv[0]);

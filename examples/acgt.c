@@ -72,21 +72,21 @@ int main(int argc, const char *argv[]) {
 		while ((l = pfasta_read(&pf, &ps)) == 0) {
 			char const *p = ps.seq;
 			char *q = ps.seq;
-			for(; *p; p++){
+			for (; *p; p++) {
 				char c = *p;
 				switch (c) {
-					case 'A':
-					case 'C':
-					case 'G':
-					case 'T':
-					case 'a':
-					case 'c':
-					case 'g':
-					case 't':
-						*q++ = c;
-						break;
-					default:
-						break;
+				case 'A':
+				case 'C':
+				case 'G':
+				case 'T':
+				case 'a':
+				case 'c':
+				case 'g':
+				case 't':
+					*q++ = c;
+					break;
+				default:
+					break;
 				}
 			}
 			*q++ = 0;
