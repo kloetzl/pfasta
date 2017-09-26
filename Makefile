@@ -1,11 +1,12 @@
 VERSION=$(shell git describe)
 
-CFLAGS?= -O3 -g -std=gnu99 -pedantic -ggdb -fPIC
-CPPFLAGS?= -Wall -Wextra -I src -DVERSION=$(VERSION)
-BINDIR?=/bin
-LIBDIR?=/lib
+CFLAGS?= -O3 -g -std=gnu11 -ggdb -fPIC
+CPPFLAGS?= -Wall -Wextra -I src -DVERSION=$(VERSION) -D_FORTIFY_SOURCE=2
+PREFIX?=""
+BINDIR?=$(PREFIX)/bin
+LIBDIR?=$(PREFIX)/lib
 
-TOOLS= acgt concat gc_content noop revcomp shuffle validate
+TOOLS= acgt concat gc_content noop revcomp shuffle validate cchar aln2dist
 LOGFILE= test.log
 
 .PHONY: all clean check dist distcheck format install install-lib install-tools
@@ -40,6 +41,9 @@ install-tools: $(TOOLS)
 
 install-lib: libpfasta.so
 
+libpfasta.so:
+	libtool --mode=compile --tag=RELEASE $(CC) $(CPPFLAGS) $(CFLAGS) -c src/pfasta.c
+
 $(TARBALL):
 	mkdir -p "$(PROJECT_VERSION)"/{src,test,tools}
 	cp Makefile LICENSE README.md pfasta "$(PROJECT_VERSION)"
@@ -50,7 +54,8 @@ $(TARBALL):
 	rm -rf $(PROJECT_VERSION)
 
 clean:
-	rm -f $(TOOLS) genFasta src/*.o tools/*.o test/*.o $(LOGFILE) fuzzer
+	rm -f $(TOOLS) genFasta fuzzer
+	rm -f src/*.o tools/*.o test/*.o $(LOGFILE)
 	rm -f *.tar.gz
 
 
