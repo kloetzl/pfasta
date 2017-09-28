@@ -1,17 +1,19 @@
 VERSION=$(shell git describe)
 
+SONAME=libpfasta.so.12
 CFLAGS?= -O3 -g -std=gnu11 -ggdb -fPIC
 CPPFLAGS?= -Wall -Wextra -D_FORTIFY_SOURCE=2
 CPPFLAGS+= -Isrc -DVERSION=$(VERSION)
 PREFIX?=""
 BINDIR?=$(PREFIX)/bin
 LIBDIR?=$(PREFIX)/lib
+INCLUDEDIR?=$(PREFIX)/include
 
 TOOLS= acgt concat gc_content format revcomp shuffle validate cchar aln2dist
 LOGFILE= test.log
 
 .PHONY: all clean check dist distcheck format install install-lib install-tools
-all: $(TOOLS) genFasta
+all: $(TOOLS) genFasta $(SONAME)
 
 $(TOOLS): %: src/pfasta.o tools/%.o
 	$(CC) $(CFLAGS) -o $@ $^
@@ -40,10 +42,15 @@ install-tools: $(TOOLS)
 	mkdir -p "${LIBDIR}/pfasta/bin"
 	install -t "${LIBDIR}/pfasta/bin" $(TOOLS)
 
-install-lib: libpfasta.so
+install-lib: $(SONAME)
+	install src/pfasta.h $(INCLUDEDIR)
+	install $(SONAME) $(LIBDIR)
+	ln -s $(SONAME) libpfasta.so
+	install libpfasta.so $(LIBDIR)
 
-libpfasta.so:
-	libtool --mode=compile --tag=RELEASE $(CC) $(CPPFLAGS) $(CFLAGS) -c src/pfasta.c
+$(SONAME): src/pfasta.c
+	$(CC) $(CPPFLAGS) $(CFLAGS) -fPIC -c src/pfasta.c
+	gcc -shared -Wl,-soname,$@ -o $@ src/pfasta.o
 
 $(TARBALL):
 	mkdir -p "$(PROJECT_VERSION)"/{src,test,tools}
@@ -56,8 +63,9 @@ $(TARBALL):
 
 clean:
 	rm -f $(TOOLS) genFasta fuzzer
-	rm -f src/*.o tools/*.o test/*.o $(LOGFILE)
+	rm -f src/*.o tools/*.o test/*.o *.o $(LOGFILE)
 	rm -f *.tar.gz
+	rm -f libpfasta.*
 
 
 
