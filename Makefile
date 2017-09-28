@@ -1,12 +1,13 @@
 VERSION=$(shell git describe)
 
 CFLAGS?= -O3 -g -std=gnu11 -ggdb -fPIC
-CPPFLAGS?= -Wall -Wextra -I src -DVERSION=$(VERSION) -D_FORTIFY_SOURCE=2
+CPPFLAGS?= -Wall -Wextra -D_FORTIFY_SOURCE=2
+CPPFLAGS+= -Isrc -DVERSION=$(VERSION)
 PREFIX?=""
 BINDIR?=$(PREFIX)/bin
 LIBDIR?=$(PREFIX)/lib
 
-TOOLS= acgt concat gc_content noop revcomp shuffle validate cchar aln2dist
+TOOLS= acgt concat gc_content format revcomp shuffle validate cchar aln2dist
 LOGFILE= test.log
 
 .PHONY: all clean check dist distcheck format install install-lib install-tools
@@ -18,7 +19,7 @@ $(TOOLS): %: src/pfasta.o tools/%.o
 genFasta: test/pcg_basic.o test/genFasta.o
 	$(CC) $(CFLAGS) -o $@ $^
 
-format:
+clang-format:
 	clang-format -i tools/*.c src/*.c src/*.h
 
 TARBALL=pfasta-$(VERSION).tar.gz
@@ -84,9 +85,9 @@ check: genFasta validate $(PASS) $(XFAIL)
 	done
 	rm -f $(LOGFILE)
 
-$(PASS): noop
+$(PASS): format
 	@echo -n "testing $@ … "
-	@./noop $@ | diff -bB - $@ 2> $(LOGFILE) || \
+	@./format $@ | diff -bB - $@ 2> $(LOGFILE) || \
 		(echo " Unexpected error: $@\n See $(LOGFILE) for details." && exit 1)
 	@echo "pass."
 
