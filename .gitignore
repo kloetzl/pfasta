@@ -28,7 +28,10 @@
 *.x86_64
 *.hex
 acgt
+aln2dist
+cchar
 concat
+format
 fuzzer
 gc_content
 genFasta
