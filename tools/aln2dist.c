@@ -1,10 +1,10 @@
 #include <err.h>
 #include <errno.h>
+#include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <fcntl.h>
 
 #include "pfasta.h"
 
@@ -47,7 +47,7 @@ void sv_swap(size_t i, size_t j) {
 	sv.data[j] = temp;
 }
 
-double compare(const pfasta_seq* subject, const pfasta_seq *query) {
+double compare(const pfasta_seq *subject, const pfasta_seq *query) {
 	size_t mutations = 0;
 	const char *s = subject->seq;
 	const char *q = query->seq;
@@ -116,12 +116,12 @@ int main(int argc, const char *argv[]) {
 	}
 
 	double *DD = malloc(sv.size * sv.size * sizeof(*DD));
-	#define D(X,Y) (DD[(X) * sv.size + (Y)])
+#define D(X, Y) (DD[(X)*sv.size + (Y)])
 
 	for (size_t i = 0; i < sv.size; i++) {
-		D(i,i) = 0.0;
+		D(i, i) = 0.0;
 		for (size_t j = 0; j < i; j++) {
-			D(i,j) = D(j,i) = compare(&sv.data[i], &sv.data[j]);
+			D(i, j) = D(j, i) = compare(&sv.data[i], &sv.data[j]);
 		}
 	}
 
@@ -129,7 +129,7 @@ int main(int argc, const char *argv[]) {
 	for (size_t i = 0; i < sv.size; i++) {
 		printf("%-10s", sv.data[i].name);
 		for (size_t j = 0; j < sv.size; j++) {
-			printf(" %1.6e", D(i,j));
+			printf(" %1.6e", D(i, j));
 		}
 		printf("\n");
 	}
