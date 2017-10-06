@@ -3,23 +3,28 @@ VERSION=$(shell git describe)
 SONAME=libpfasta.so.12
 CFLAGS?= -O3 -g -std=gnu11 -ggdb -fPIC
 CPPFLAGS?= -Wall -Wextra -D_FORTIFY_SOURCE=2
-CPPFLAGS+= -Isrc -DVERSION=$(VERSION)
-PREFIX?=""
+CPPFLAGS+= -Isrc -DVERSION=$(VERSION) -D_GNU_SOURCE
+PREFIX?="/usr"
 BINDIR?=$(PREFIX)/bin
 LIBDIR?=$(PREFIX)/lib
 INCLUDEDIR?=$(PREFIX)/include
 
-TOOLS= acgt concat gc_content format revcomp shuffle validate cchar aln2dist
+ifeq "$(WITH_LIBBSD)" "1"
+CPPFLAGS+=-isystem $(INCLUDEDIR)/bsd -DLIBBSD_OVERLAY
+LIBS+=-lbsd
+endif
+
+TOOLS= acgt concat gc_content format revcomp shuffle validate cchar aln2dist split
 LOGFILE= test.log
 
-.PHONY: all clean check dist distcheck format install install-lib install-tools
+.PHONY: all clean check dist distcheck clang-format install install-lib install-tools
 all: $(TOOLS) genFasta $(SONAME)
 
 $(TOOLS): %: src/pfasta.o tools/%.o
-	$(CC) $(CFLAGS) -o $@ $^
+	$(CC) $(CFLAGS) -o $@ $^ $(LIBS)
 
 genFasta: test/pcg_basic.o test/genFasta.o
-	$(CC) $(CFLAGS) -o $@ $^
+	$(CC) $(CFLAGS) -o $@ $^ $(LIBS)
 
 clang-format:
 	clang-format -i tools/*.c src/*.c src/*.h
@@ -30,8 +35,8 @@ dist: $(TARBALL)
 
 distcheck: dist
 	tar -xzf $(TARBALL)
-	$(MAKE) -C $(PROJECT_VERSION)
-	$(MAKE) -C $(PROJECT_VERSION) check
+	$(MAKE) -C $(PROJECT_VERSION) WITH_LIBBSD=$(WITH_LIBBSD)
+	$(MAKE) -C $(PROJECT_VERSION) WITH_LIBBSD=$(WITH_LIBBSD) check
 	rm -rf $(PROJECT_VERSION)
 
 install: install-tools install-lib
@@ -48,9 +53,11 @@ install-lib: $(SONAME)
 	ln -s $(SONAME) libpfasta.so
 	install libpfasta.so $(LIBDIR)
 
-$(SONAME): src/pfasta.c
-	$(CC) $(CPPFLAGS) $(CFLAGS) -fPIC -c src/pfasta.c
-	gcc -shared -Wl,-soname,$@ -o $@ src/pfasta.o
+src/pfasta.o: src/pfasta.c
+	$(CC) $(CPPFLAGS) $(CFLAGS) -fPIC -c $^ -o $@
+
+$(SONAME): src/pfasta.o
+	gcc -shared -Wl,-soname,$@ -o $@ $^
 
 $(TARBALL):
 	mkdir -p "$(PROJECT_VERSION)"/{src,test,tools}
