@@ -93,6 +93,8 @@ typedef struct dynstr {
 	size_t capacity, count;
 } dynstr;
 
+void *reallocarray(void *ptr, size_t nmemb, size_t size);
+
 static inline int dynstr_init(dynstr *ds);
 static inline int dynstr_put(dynstr *ds, char c);
 static inline void dynstr_free(dynstr *ds);
@@ -454,7 +456,6 @@ static inline void dynstr_free(dynstr *ds) {
  *
  * @returns a `char*` to a standard null-terminated string.
  */
-
 static inline char *dynstr_move(dynstr *ds) {
 	char *out = reallocarray(ds->str, ds->count + 1, 1);
 	if (!out) {
@@ -467,3 +468,10 @@ static inline char *dynstr_move(dynstr *ds) {
 
 /** @brief Returns the current length of the dynamic string. */
 static inline size_t dynstr_len(const dynstr *ds) { return ds->count; }
+
+/**
+ * @brief Unsafe fallback in case reallocarray isn't provided by the stdlib.
+ */
+__attribute__((weak)) void *reallocarray(void *ptr, size_t nmemb, size_t size) {
+	return realloc(ptr, nmemb * size);
+}
