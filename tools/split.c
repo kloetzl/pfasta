@@ -7,6 +7,7 @@
 #include <string.h>
 #include <unistd.h>
 
+#include "common.h"
 #include "pfasta.h"
 
 static int line_length = 70;
@@ -15,34 +16,6 @@ static char *outdir = "./";
 
 void usage(int exit_code);
 void process(const char *file_name);
-
-int fprint_seq(FILE *stream, const pfasta_seq *ps, int line_length) {
-	if (!stream || !ps || line_length <= 0) {
-		return -EINVAL;
-	}
-
-	int check;
-	if (ps->comment) {
-		check = fprintf(stream, ">%s %s\n", ps->name, ps->comment);
-	} else {
-		check = fprintf(stream, ">%s\n", ps->name);
-	}
-
-	if (check < 0) {
-		return check;
-	}
-
-	const char *seq = ps->seq;
-
-	for (ssize_t j; *seq; seq += j) {
-		j = fprintf(stream, "%.*s\n", line_length, seq) - 1;
-		if (j < 0) {
-			return j;
-		}
-	}
-
-	return 0;
-}
 
 int main(int argc, char **argv) {
 
@@ -61,6 +34,7 @@ int main(int argc, char **argv) {
 			if (errstr) errx(1, "line length is %s: %s", errstr, optarg);
 
 			if (!line_length) line_length = INT_MAX;
+			break;
 		}
 		case 's':
 			suffix = optarg;
@@ -112,7 +86,9 @@ void process(const char *file_name) {
 		if (output == NULL) {
 			err(errno, "couldn't open file %s", out_file_name);
 		}
-		fprint_seq(output, &ps, line_length);
+
+		int file_descriptor = fileno(output);
+		pfasta_print(file_descriptor, &ps, line_length);
 
 		fclose(output);
 		free(out_file_name);
@@ -130,7 +106,7 @@ void process(const char *file_name) {
 void usage(int exit_code) {
 	static const char str[] = {
 	    "Usage: split [OPTIONS...] [FILE...]\n"
-	    "Split a FASTA file into one per sequence.\n\n"
+	    "Split a FASTA file into one per contained sequence. \n\n"
 	    "Options:\n"
 	    "  -h         Display help and exit\n"
 	    "  -d DIR     Set the directory to put the new files in\n"

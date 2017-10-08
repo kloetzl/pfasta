@@ -20,7 +20,7 @@ LOGFILE= test.log
 .PHONY: all clean check dist distcheck clang-format install install-lib install-tools
 all: $(TOOLS) genFasta $(SONAME)
 
-$(TOOLS): %: src/pfasta.o tools/%.o
+$(TOOLS): %: src/pfasta.o tools/common.o tools/%.o
 	$(CC) $(CFLAGS) -o $@ $^ $(LIBS)
 
 genFasta: test/pcg_basic.o test/genFasta.o
