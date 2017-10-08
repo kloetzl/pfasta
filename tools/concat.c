@@ -11,7 +11,7 @@
 #include "common.h"
 #include "pfasta.h"
 
-static size_t line_length = 70;
+static int line_length = 70;
 
 void usage(int exit_code);
 void process(const char *file_name);
