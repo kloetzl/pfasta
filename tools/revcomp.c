@@ -10,7 +10,7 @@
 #include "common.h"
 #include "pfasta.h"
 
-static size_t line_length = 70;
+static int line_length = 70;
 
 char *revcomp(const char *seq, size_t len);
 void usage(int exit_code);
