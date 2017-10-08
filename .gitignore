@@ -38,6 +38,7 @@ genFasta
 noop
 revcomp
 shuffle
+split
 validate
 
 # Debug files
