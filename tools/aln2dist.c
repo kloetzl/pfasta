@@ -1,12 +1,21 @@
 #include <err.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 
 #include "pfasta.h"
+
+void usage(int exit_code);
+void process(const char *file_name);
+size_t count_muts(const pfasta_seq *subject, const pfasta_seq *query,
+                  size_t length);
+void print_mutations(size_t *DD);
+void print_jc(size_t *DD, size_t length);
+void print_ani(size_t *DD, size_t length);
 
 struct seq_vector {
 	pfasta_seq *data;
@@ -25,11 +34,11 @@ void sv_emplace(pfasta_seq ps) {
 	if (sv.size < sv.capacity) {
 		sv.data[sv.size++] = ps;
 	} else {
-		// TODO: check for multiplication overflow
-		size_t new_cap = (sv.capacity / 2) * 3;
-		sv.data = realloc(sv.data, new_cap * sizeof(pfasta_seq));
+		sv.data =
+		    reallocarray(sv.data, sv.capacity / 2, 3 * sizeof(pfasta_seq));
 		if (!sv.data) err(errno, "realloc failed");
-		sv.capacity = new_cap;
+		// reallocarray would return NULL, if mult would overflow
+		sv.capacity = (sv.capacity / 2) * 3;
 		sv.data[sv.size++] = ps;
 	}
 }
@@ -41,17 +50,112 @@ void sv_free() {
 	free(sv.data);
 }
 
-void sv_swap(size_t i, size_t j) {
-	pfasta_seq temp = sv.data[i];
-	sv.data[i] = sv.data[j];
-	sv.data[j] = temp;
+enum { F_JC, F_MUTATIONS, F_ANI };
+
+int main(int argc, char *argv[]) {
+	sv_init();
+
+	int c;
+	int format = F_JC;
+	while ((c = getopt(argc, argv, "f:h")) != -1) {
+		switch (c) {
+		case 'f': {
+			// available formats: mutations, JC, ANI
+			if (strcasecmp(optarg, "mutations") == 0) {
+				format = F_MUTATIONS;
+			} else if (strcasecmp(optarg, "JC") == 0) {
+				format = F_JC;
+			} else if (strcasecmp(optarg, "ANI") == 0) {
+				format = F_ANI;
+			} else {
+				errx(1, "unknown output format '%s'", optarg);
+			}
+			break;
+		}
+		case 'h':
+			usage(EXIT_SUCCESS);
+		default:
+			usage(EXIT_FAILURE);
+		}
+	}
+
+	argc -= optind, argv += optind;
+	if (argc == 0) {
+		if (!isatty(STDIN_FILENO)) {
+			process("-");
+		} else {
+			usage(EXIT_FAILURE);
+		}
+	}
+
+	for (int i = 0; i < argc; i++) {
+		process(argv[i]);
+	}
+
+	// check lengths
+	if (sv.size < 2) errx(1, "less than two sequences read");
+	size_t length = strlen(sv.data[0].seq);
+	for (size_t i = 1; i < sv.size; i++) {
+		if (strlen(sv.data[i].seq) != length) {
+			errx(1, "alignments of unequal length");
+		}
+	}
+
+	size_t *DD = malloc(sv.size * sv.size * sizeof(*DD));
+	if (!DD) err(errno, "out of memory");
+
+#define D(X, Y) (DD[(X)*sv.size + (Y)])
+
+	for (size_t i = 0; i < sv.size; i++) {
+		D(i, i) = 0.0;
+		for (size_t j = 0; j < i; j++) {
+			D(i, j) = D(j, i) = count_muts(&sv.data[i], &sv.data[j], length);
+		}
+	}
+
+	if (format == F_JC) {
+		print_jc(DD, length);
+	} else if (format == F_MUTATIONS) {
+		print_mutations(DD);
+	} else if (format == F_ANI) {
+		print_ani(DD, length);
+	}
+
+	free(DD);
+	sv_free();
+
+	return EXIT_SUCCESS;
 }
 
-double compare(const pfasta_seq *subject, const pfasta_seq *query) {
+void process(const char *file_name) {
+	int file_descriptor =
+	    strcmp(file_name, "-") == 0 ? STDIN_FILENO : open(file_name, O_RDONLY);
+	if (file_descriptor < 0) err(1, "%s", file_name);
+
+	pfasta_file pf;
+	int l = pfasta_parse(&pf, file_descriptor);
+	if (l != 0) {
+		errx(1, "%s: %s", file_name, pfasta_strerror(&pf));
+	}
+
+	pfasta_seq ps;
+	while ((l = pfasta_read(&pf, &ps)) == 0) {
+		sv_emplace(ps);
+	}
+
+	if (l < 0) {
+		errx(1, "%s: %s", file_name, pfasta_strerror(&pf));
+	}
+
+	pfasta_free(&pf);
+	close(file_descriptor);
+}
+
+size_t count_muts(const pfasta_seq *subject, const pfasta_seq *query,
+                  size_t length) {
 	size_t mutations = 0;
 	const char *s = subject->seq;
 	const char *q = query->seq;
-	size_t length = strlen(s);
 
 	for (size_t i = 0; i < length; i++) {
 		if (s[i] != q[i]) {
@@ -59,83 +163,59 @@ double compare(const pfasta_seq *subject, const pfasta_seq *query) {
 		}
 	}
 
-	return (double)mutations / length;
+	return mutations;
 }
 
-int main(int argc, const char *argv[]) {
-
-	if (argc == 2 && argv[1][0] == '-' && argv[1][1] == 'h') {
-		fprintf(stderr, "Usage: %s [FASTA...]\n", argv[0]);
-		return 1;
-	}
-
-	argv += 1;
-
-	sv_init();
-
-	int firsttime = 1;
-	int exit_code = EXIT_SUCCESS;
-
-	for (;; firsttime = 0) {
-		int file_descriptor;
-		const char *file_name;
-		if (!*argv) {
-			if (!firsttime) break;
-
-			file_descriptor = STDIN_FILENO;
-			file_name = "stdin";
-		} else {
-			file_name = *argv++;
-			file_descriptor = open(file_name, O_RDONLY);
-			if (file_descriptor < 0) err(1, "%s", file_name);
-		}
-
-		int l;
-		pfasta_file pf;
-		if ((l = pfasta_parse(&pf, file_descriptor)) != 0) {
-			warnx("%s: %s", file_name, pfasta_strerror(&pf));
-			exit_code = EXIT_FAILURE;
-			goto fail;
-		}
-
-		pfasta_seq ps;
-		while ((l = pfasta_read(&pf, &ps)) == 0) {
-			sv_emplace(ps);
-			// pfasta_seq_free(&ps);
-		}
-
-		if (l < 0) {
-			warnx("%s: %s", file_name, pfasta_strerror(&pf));
-			exit_code = EXIT_FAILURE;
-			pfasta_seq_free(&ps);
-		}
-
-	fail:
-		pfasta_free(&pf);
-		close(file_descriptor);
-	}
-
-	double *DD = malloc(sv.size * sv.size * sizeof(*DD));
-#define D(X, Y) (DD[(X)*sv.size + (Y)])
-
-	for (size_t i = 0; i < sv.size; i++) {
-		D(i, i) = 0.0;
-		for (size_t j = 0; j < i; j++) {
-			D(i, j) = D(j, i) = compare(&sv.data[i], &sv.data[j]);
-		}
-	}
-
+void print_mutations(size_t *DD) {
 	printf("%zu\n", sv.size);
 	for (size_t i = 0; i < sv.size; i++) {
 		printf("%-10s", sv.data[i].name);
 		for (size_t j = 0; j < sv.size; j++) {
-			printf(" %1.6e", D(i, j));
+			printf(" %4zu", D(i, j));
 		}
 		printf("\n");
 	}
+}
 
-	free(DD);
-	sv_free();
+void print_jc(size_t *DD, size_t length) {
+	printf("%zu\n", sv.size);
+	for (size_t i = 0; i < sv.size; i++) {
+		printf("%-10s", sv.data[i].name);
+		for (size_t j = 0; j < sv.size; j++) {
+			double muts = D(i, j) / (double)length;
+			// apply Jukes-Cantor Correction
+			if (muts > 0.0) {
+				muts = -0.75 * log(1.0 - (4.0 / 3.0) * muts);
+			}
+			printf(" %1.6e", muts);
+		}
+		printf("\n");
+	}
+}
 
-	return exit_code;
+void print_ani(size_t *DD, size_t length) {
+	printf("%zu\n", sv.size);
+	for (size_t i = 0; i < sv.size; i++) {
+		printf("%-10s", sv.data[i].name);
+		for (size_t j = 0; j < sv.size; j++) {
+			double ani = (length - D(i, j)) / (double)length;
+			printf(" %lf", ani);
+		}
+		printf("\n");
+	}
+}
+
+void usage(int exit_code) {
+	static const char str[] = {
+	    "Usage: aln2dist [OPTIONS...] [FILE...]\n"
+	    "Compute sequence distances from an alignment. Output is a "
+	    "PHYLIP-style distance matrix.\n"
+	    "When FILE is '-' read from standard input.\n\n"
+	    "Options:\n"
+	    "  -f FORMAT  Set output format to one of 'JC', 'ANI', or 'mutations'\n"
+	    "  -h         Display help and exit\n" //
+	};
+
+	fprintf(exit_code == EXIT_SUCCESS ? stdout : stderr, str);
+	exit(exit_code);
 }

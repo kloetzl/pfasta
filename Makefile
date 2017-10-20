@@ -4,6 +4,7 @@ SONAME=libpfasta.so.12
 CFLAGS?= -O3 -g -std=gnu11 -ggdb -fPIC
 CPPFLAGS?= -Wall -Wextra -D_FORTIFY_SOURCE=2
 CPPFLAGS+= -Isrc -DVERSION=$(VERSION) -D_GNU_SOURCE
+LIBS+=-lm
 PREFIX?="/usr"
 BINDIR?=$(PREFIX)/bin
 LIBDIR?=$(PREFIX)/lib
