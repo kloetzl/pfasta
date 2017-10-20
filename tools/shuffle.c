@@ -56,6 +56,8 @@ void sv_swap(size_t i, size_t j) {
 }
 
 int main(int argc, char *argv[]) {
+	sv_init();
+
 	unsigned int seed = 0;
 	int c;
 	while ((c = getopt(argc, argv, "hL:s:")) != -1) {
