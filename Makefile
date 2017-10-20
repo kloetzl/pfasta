@@ -15,17 +15,17 @@ CPPFLAGS+=-isystem $(INCLUDEDIR)/bsd -DLIBBSD_OVERLAY
 LIBS+=-lbsd
 endif
 
-TOOLS= acgt concat gc_content format revcomp shuffle validate cchar aln2dist split
+TOOLS= acgt concat gc_content format revcomp shuffle validate cchar aln2dist split sim
 LOGFILE= test.log
 
 .PHONY: all clean check dist distcheck clang-format install install-lib install-tools
-all: $(TOOLS) genFasta $(SONAME)
+all: $(TOOLS) $(SONAME)
+
+sim: tools/pcg_basic.o tools/sim.o
 
 $(TOOLS): %: src/pfasta.o tools/common.o tools/%.o
 	$(CC) $(CFLAGS) -o $@ $^ $(LIBS)
 
-genFasta: test/pcg_basic.o test/genFasta.o
-	$(CC) $(CFLAGS) -o $@ $^ $(LIBS)
 
 clang-format:
 	clang-format -i tools/*.c src/*.c src/*.h
@@ -70,7 +70,7 @@ $(TARBALL):
 	rm -rf $(PROJECT_VERSION)
 
 clean:
-	rm -f $(TOOLS) genFasta fuzzer
+	rm -f $(TOOLS) fuzzer
 	rm -f src/*.o tools/*.o test/*.o *.o $(LOGFILE)
 	rm -f *.tar.gz
 	rm -f libpfasta.*
@@ -92,10 +92,10 @@ PASS= $(wildcard test/pass*)
 
 .PHONY: $(PASS) $(XFAIL)
 
-check: genFasta validate $(PASS) $(XFAIL)
+check: sim validate $(PASS) $(XFAIL)
 	@ for LENGTH in 1 2 3 10 100 1000 10000; do \
 		echo -n "testing with generated sequence of length $${LENGTH} … "; \
-		(./genFasta -l "$${LENGTH}" | ./validate 2> $(LOGFILE) ) || \
+		(./sim -l "$${LENGTH}" | ./validate 2> $(LOGFILE) ) || \
 		(echo " Unexpected error: $@\n See $(LOGFILE) for details." && exit 1); \
 		echo "pass."; \
 	done
