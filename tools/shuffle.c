@@ -1,40 +1,20 @@
 #include <err.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <time.h>
 #include <unistd.h>
 
+#include "common.h"
 #include "pfasta.h"
 
 static size_t line_length = 70;
 
-size_t strncpy_n(char *dest, const char *src, size_t n) {
-	size_t i = 0;
-	for (; i < n && *src; ++i) {
-		*dest++ = *src++;
-	}
-	return i;
-}
-
-void print_seq(const pfasta_seq *ps) {
-	printf(">%s", ps->name);
-	if (ps->comment) {
-		printf(" %s\n", ps->comment);
-	} else {
-		printf("\n");
-	}
-
-	char line[line_length + 1];
-	const char *seq = ps->seq;
-
-	for (size_t j; *seq; seq += j) {
-		j = strncpy_n(line, seq, line_length);
-		line[j] = '\0';
-		puts(line);
-	}
-}
+void usage(int exit_code);
+void process(const char *file_name);
 
 struct seq_vector {
 	pfasta_seq *data;
@@ -53,11 +33,11 @@ void sv_emplace(pfasta_seq ps) {
 	if (sv.size < sv.capacity) {
 		sv.data[sv.size++] = ps;
 	} else {
-		// TODO: check for multiplication overflow
-		size_t new_cap = (sv.capacity / 2) * 3;
-		sv.data = realloc(sv.data, new_cap * sizeof(pfasta_seq));
+		sv.data =
+		    reallocarray(sv.data, sv.capacity / 2, 3 * sizeof(pfasta_seq));
 		if (!sv.data) err(errno, "realloc failed");
-		sv.capacity = new_cap;
+		// reallocarray would return NULL, if mult would overflow
+		sv.capacity = (sv.capacity / 2) * 3;
 		sv.data[sv.size++] = ps;
 	}
 }
@@ -75,60 +55,53 @@ void sv_swap(size_t i, size_t j) {
 	sv.data[j] = temp;
 }
 
-int main(int argc, const char *argv[]) {
+int main(int argc, char *argv[]) {
+	unsigned int seed = 0;
+	int c;
+	while ((c = getopt(argc, argv, "hL:s:")) != -1) {
+		switch (c) {
+		case 'h':
+			usage(EXIT_SUCCESS);
+		case 'L': {
+			const char *errstr;
 
-	if (argc == 2 && argv[1][0] == '-' && argv[1][1] == 'h') {
-		fprintf(stderr, "Usage: %s [FASTA...]\n", argv[0]);
-		return 1;
+			line_length = strtonum(optarg, 0, INT_MAX, &errstr);
+			if (errstr) errx(1, "line length is %s: %s", errstr, optarg);
+
+			if (!line_length) line_length = INT_MAX;
+			break;
+		}
+		case 's': {
+			const char *errstr;
+
+			seed = strtonum(optarg, 0, UINT_MAX, &errstr);
+			if (errstr) errx(1, "seed is %s: %s", errstr, optarg);
+
+			break;
+		}
+		default:
+			usage(EXIT_FAILURE);
+		}
 	}
 
-	argv += 1;
-
-	sv_init();
-
-	int firsttime = 1;
-	int exit_code = EXIT_SUCCESS;
-
-	for (;; firsttime = 0) {
-		int file_descriptor;
-		const char *file_name;
-		if (!*argv) {
-			if (!firsttime) break;
-
-			file_descriptor = STDIN_FILENO;
-			file_name = "stdin";
+	argc -= optind, argv += optind;
+	if (argc == 0) {
+		if (!isatty(STDIN_FILENO)) {
+			process("-");
 		} else {
-			file_name = *argv++;
-			file_descriptor = open(file_name, O_RDONLY);
-			if (file_descriptor < 0) err(1, "%s", file_name);
+			usage(EXIT_FAILURE);
 		}
-
-		int l;
-		pfasta_file pf;
-		if ((l = pfasta_parse(&pf, file_descriptor)) != 0) {
-			warnx("%s: %s", file_name, pfasta_strerror(&pf));
-			exit_code = EXIT_FAILURE;
-			goto fail;
-		}
-
-		pfasta_seq ps;
-		while ((l = pfasta_read(&pf, &ps)) == 0) {
-			sv_emplace(ps);
-			// pfasta_seq_free(&ps);
-		}
-
-		if (l < 0) {
-			warnx("%s: %s", file_name, pfasta_strerror(&pf));
-			exit_code = EXIT_FAILURE;
-			pfasta_seq_free(&ps);
-		}
-
-	fail:
-		pfasta_free(&pf);
-		close(file_descriptor);
 	}
 
-	srand(time(NULL) + getpid());
+	for (int i = 0; i < argc; i++) {
+		process(argv[i]);
+	}
+
+	if (seed == 0) {
+		seed = time(NULL) + getpid();
+	}
+
+	srand(seed);
 
 	for (size_t i = sv.size; i > 0; i--) {
 		size_t j = rand() % i;
@@ -136,10 +109,49 @@ int main(int argc, const char *argv[]) {
 	}
 
 	for (size_t i = 0; i < sv.size; i++) {
-		print_seq(&sv.data[i]);
+		pfasta_print(STDOUT_FILENO, &sv.data[i], line_length);
 	}
 
 	sv_free();
 
-	return exit_code;
+	return EXIT_SUCCESS;
+}
+
+void process(const char *file_name) {
+	int file_descriptor =
+	    strcmp(file_name, "-") == 0 ? STDIN_FILENO : open(file_name, O_RDONLY);
+	if (file_descriptor < 0) err(1, "%s", file_name);
+
+	pfasta_file pf;
+	int l = pfasta_parse(&pf, file_descriptor);
+	if (l != 0) {
+		errx(1, "%s: %s", file_name, pfasta_strerror(&pf));
+	}
+
+	pfasta_seq ps;
+	while ((l = pfasta_read(&pf, &ps)) == 0) {
+		sv_emplace(ps);
+	}
+
+	if (l < 0) {
+		errx(1, "%s: %s", file_name, pfasta_strerror(&pf));
+	}
+
+	pfasta_free(&pf);
+	close(file_descriptor);
+}
+
+void usage(int exit_code) {
+	static const char str[] = {
+	    "Usage: shuffle [OPTIONS...] [FILE...]\n"
+	    "Shuffle a set of sequences.\n"
+	    "When FILE is '-' read from standard input.\n\n"
+	    "Options:\n"
+	    "  -h         Display help and exit\n"
+	    "  -L num     Set the maximum line length (0 to disable)\n"
+	    "  -s seed    Seed the PRNG\n" //
+	};
+
+	fprintf(exit_code == EXIT_SUCCESS ? stdout : stderr, str);
+	exit(exit_code);
 }
