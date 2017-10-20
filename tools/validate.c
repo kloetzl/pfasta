@@ -2,59 +2,69 @@
 #include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
 
 #include "pfasta.h"
 
-int main(int argc, const char *argv[]) {
+void usage(int exit_code);
+void process(const char *file_name);
 
-	if (argc == 2 && argv[1][0] == '-' && argv[1][1] == 'h') {
-		fprintf(stderr, "Usage: %s [FASTA...]\n", argv[0]);
-		return 1;
+int main(int argc, char *argv[]) {
+	int c;
+	while ((c = getopt(argc, argv, "h")) != -1) {
+		usage(c == 'h' ? EXIT_SUCCESS : EXIT_FAILURE);
 	}
 
-	argv += 1;
-
-	int firsttime = 1;
-	int exit_code = EXIT_SUCCESS;
-
-	for (;; firsttime = 0) {
-		int file_descriptor;
-		const char *file_name;
-		if (!*argv) {
-			if (!firsttime) break;
-
-			file_descriptor = STDIN_FILENO;
-			file_name = "stdin";
+	argc -= optind, argv += optind;
+	if (argc == 0) {
+		if (!isatty(STDIN_FILENO)) {
+			process("-");
 		} else {
-			file_name = *argv++;
-			file_descriptor = open(file_name, O_RDONLY);
-			if (file_descriptor < 0) err(1, "%s", file_name);
+			usage(EXIT_FAILURE);
 		}
-
-		int l;
-		pfasta_file pf;
-		if ((l = pfasta_parse(&pf, file_descriptor)) != 0) {
-			warnx("%s: %s", file_name, pfasta_strerror(&pf));
-			exit_code = EXIT_FAILURE;
-			goto fail;
-		}
-
-		pfasta_seq ps;
-		while ((l = pfasta_read(&pf, &ps)) == 0) {
-			pfasta_seq_free(&ps);
-		}
-
-		if (l < 0) {
-			warnx("%s: %s", file_name, pfasta_strerror(&pf));
-			exit_code = EXIT_FAILURE;
-			pfasta_seq_free(&ps);
-		}
-
-	fail:
-		pfasta_free(&pf);
-		close(file_descriptor);
 	}
 
-	return exit_code;
+	for (int i = 0; i < argc; i++) {
+		process(argv[i]);
+	}
+
+	return EXIT_SUCCESS;
+}
+
+void process(const char *file_name) {
+	int file_descriptor =
+	    strcmp(file_name, "-") == 0 ? STDIN_FILENO : open(file_name, O_RDONLY);
+	if (file_descriptor < 0) err(1, "%s", file_name);
+
+	pfasta_file pf;
+	int l = pfasta_parse(&pf, file_descriptor);
+	if (l != 0) {
+		errx(1, "%s: %s", file_name, pfasta_strerror(&pf));
+	}
+
+	pfasta_seq ps;
+	while ((l = pfasta_read(&pf, &ps)) == 0) {
+		pfasta_seq_free(&ps);
+	}
+
+	if (l < 0) {
+		errx(1, "%s: %s", file_name, pfasta_strerror(&pf));
+	}
+
+	pfasta_free(&pf);
+	close(file_descriptor);
+}
+
+void usage(int exit_code) {
+	static const char str[] = {
+	    "Usage: validate [FILE...]\n"
+	    "Verify if the input is a valid FASTA file.\n"
+	    "When FILE is '-' read from standard input.\n\n"
+	    "Options:\n"
+	    "  -h         Display help and exit\n" //
+	};
+
+	fprintf(exit_code == EXIT_SUCCESS ? stdout : stderr, str);
+	exit(exit_code);
 }
