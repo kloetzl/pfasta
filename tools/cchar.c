@@ -127,9 +127,8 @@ void usage(int exit_code) {
 	    "Usage: cchar [OPTIONS...] [FILE...]\n"
 	    "Count the residues. When FILE is '-' read from standard input.\n\n"
 	    "Options:\n"
-	    "  -i         Ignore case\n"
 	    "  -h         Display help and exit\n"
-	    "  -L num     Set the maximum line length (0 to disable)\n"
+	    "  -i         Ignore case\n"
 	    "  -s         Print output per individual sequence\n" //
 	};
 
