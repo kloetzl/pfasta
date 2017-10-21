@@ -29,6 +29,7 @@
 *.hex
 acgt
 aln2dist
+aln2maf
 cchar
 concat
 format
