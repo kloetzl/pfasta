@@ -64,8 +64,8 @@ $(TARBALL):
 	mkdir -p "$(PROJECT_VERSION)"/{src,test,tools}
 	cp Makefile LICENSE README.md pfasta "$(PROJECT_VERSION)"
 	cp src/*.c src/*.h "$(PROJECT_VERSION)/src"
-	cp test/*.cxx test/*.c test/*.fa test/*.h "$(PROJECT_VERSION)/test"
-	cp tools/*.c "$(PROJECT_VERSION)/tools"
+	cp test/*.cxx test/*.fa "$(PROJECT_VERSION)/test"
+	cp tools/*.c tools/*.h "$(PROJECT_VERSION)/tools"
 	tar -ca -f $@ $(PROJECT_VERSION)
 	rm -rf $(PROJECT_VERSION)
 
