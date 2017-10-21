@@ -7,6 +7,7 @@
 On Linux, compilation requires [libbsd](https://libbsd.freedesktop.org/wiki/). It may not be required on other systems.
 
     git clone https://github.com/kloetzl/pfasta.git
+    cd pfasta
     make WITH_LIBBSD=1
     sudo make install
 
@@ -16,13 +17,14 @@ After compilation the main directory will contain a set of tools. They are desig
 
  * `acgt`: Reduce residues to the four canonical bases.
  * `aln2dist`: Convert an alignment to a distance matrix.
+ * `aln2maf`: Convert an alignment to MAF.
  * `cchar`: Count the number of nucleotides.
  * `concat`: Concatenate sequences.
  * `format`: Format sequences.
  * `gc_content`: Determine the GC content.
- * `genFasta`: Simulate a set of genomic sequences.
  * `revcomp`: Compute the reverse complement.
  * `shuffle`: Shuffle a set of sequences.
+ * `sim`: Simulate a set of genetic sequences.
  * `split`: Split a FASTA file into multiple files on a sequence basis.
  * `validate`: Check if a file conforms to the grammar given below.
 
@@ -51,7 +53,7 @@ A FASTA file contains one or more sequences. Each sequence consists of a header 
 ### API Usage
 
 Copy the `pfasta.h` and `pfasta.c` files into your project. You then have access
-to a number of simple functions to setup a parser and use it on files. For a complete example on their usage see [examples/gc_content.c](examples/gc_content.c).
+to a number of simple functions to setup a parser and use it on files. For a complete example on their usage see [tools/gc_content.c](tools/gc_content.c).
 
 ```c
 typedef struct pfasta_file {
