@@ -454,9 +454,14 @@ int pfasta_read_comment(struct pfasta_parser *pp, struct pfasta_record *pr) {
 	buffer_advance(pp, 1); // skip first whitespace
 	PF_FAIL_BUBBLE(pp);
 
+	assert(!buffer_is_empty(pp));
+
 	// get comment
 	while (buffer_peek(pp) != '\n') {
-		copy_word(pp, &comment);
+		int check = copy_word(pp, &comment);
+		PF_FAIL_BUBBLE(pp);
+
+		if (buffer_is_eof(pp)) PF_FAIL_STR( pp, "Unexpected EOF in comment.");
 
 		// iterate non-linebreak whitespace
 		while (isblank(buffer_peek(pp))) {
