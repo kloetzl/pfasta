@@ -192,6 +192,18 @@ char *find_if_is_graph(const char *begin, const char *end) {
 	return (char *)begin + offset;
 }
 
+size_t count_newlines(const char *begin, const char *end) {
+	size_t offset = 0;
+	size_t length = end - begin;
+	size_t newlines = 0;
+
+	for (; offset < length; offset++) {
+		if (begin[offset] == '\n') newlines++;
+	}
+
+	return newlines;
+}
+
 __attribute__((target_clones("avx2", "avx", "sse2", "default"))) char *
 find_if_is_not_graph(const char *begin, const char *end) {
 	size_t length = end - begin;
@@ -353,8 +365,14 @@ static int skip_whitespace(struct pfasta_parser *pp) {
 
 	while (my_isspace(buffer_peek(pp))) {
 		char *split = find_if_is_graph(buffer_begin(pp), buffer_end(pp));
+
+		// advance may clear the buffer. So count first …
+		size_t newlines = count_newlines(buffer_begin(pp), split);
 		int check = buffer_advance(pp, split - buffer_begin(pp));
 		if (UNLIKELY(check)) PF_FAIL_BUBBLE(pp);
+
+		// … and then increase the counter.
+		pp->line_number += newlines;
 	}
 
 cleanup:
@@ -364,6 +382,7 @@ cleanup:
 struct pfasta_parser pfasta_init(int file_descriptor) {
 	int return_code = 0;
 	struct pfasta_parser pp = {0};
+	pp.line_number = 1;
 
 	pp.file_descriptor = file_descriptor;
 	buffer_init(&pp);
@@ -424,7 +443,7 @@ int pfasta_read_name(struct pfasta_parser *pp, struct pfasta_record *pr) {
 	copy_word(pp, &name);
 	PF_FAIL_BUBBLE(pp);
 
-	if (dynstr_len(&name) == 0) PF_FAIL_STR(pp, "Empty name.");
+	if (dynstr_len(&name) == 0) PF_FAIL_STR(pp, "Empty name on line %zu.", pp->line_number);
 
 	pr->name_length = dynstr_len(&name);
 	pr->name = dynstr_move(&name);
@@ -461,7 +480,7 @@ int pfasta_read_comment(struct pfasta_parser *pp, struct pfasta_record *pr) {
 		int check = copy_word(pp, &comment);
 		PF_FAIL_BUBBLE(pp);
 
-		if (buffer_is_eof(pp)) PF_FAIL_STR( pp, "Unexpected EOF in comment.");
+		if (buffer_is_eof(pp)) PF_FAIL_STR( pp, "Unexpected EOF in comment on line %zu.", pp->line_number);
 
 		// iterate non-linebreak whitespace
 		while (isblank(buffer_peek(pp))) {
@@ -494,10 +513,8 @@ int pfasta_read_sequence(struct pfasta_parser *pp, struct pfasta_record *pr) {
 	assert(!buffer_is_eof(pp));
 	assert(buffer_peek(pp) == '\n');
 
-	buffer_advance(pp, 1); // skip newline
+	skip_whitespace(pp);
 	PF_FAIL_BUBBLE(pp);
-
-	// skip whitespace‽
 
 	while (LIKELY(isalpha(buffer_peek(pp)))) {
 		int check = copy_word(pp, &sequence);
@@ -507,7 +524,7 @@ int pfasta_read_sequence(struct pfasta_parser *pp, struct pfasta_record *pr) {
 		if (UNLIKELY(check)) PF_FAIL_BUBBLE(pp);
 	}
 
-	if (dynstr_len(&sequence) == 0) PF_FAIL_STR(pp, "Empty sequence.");
+	if (dynstr_len(&sequence) == 0) PF_FAIL_STR(pp, "Empty sequence on line %zu.", pp->line_number);
 
 	pr->sequence_length = dynstr_len(&sequence);
 	pr->sequence = dynstr_move(&sequence);
