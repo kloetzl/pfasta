@@ -29,6 +29,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
+#include <threads.h>
 #include <unistd.h>
 
 void *reallocarray(void *ptr, size_t nmemb, size_t size);
@@ -52,7 +53,6 @@ struct pfasta_parser {
 	char *read_ptr, *fill_ptr;
 	size_t line_number;
 	const char *errstr;
-	char errstr_buffer[PF_ERROR_STRING_LENGTH];
 };
 
 typedef struct dynstr {
@@ -60,10 +60,12 @@ typedef struct dynstr {
 	size_t capacity, count;
 } dynstr;
 
+thread_local char errstr_buffer[PF_ERROR_STRING_LENGTH];
+
 #define PF_FAIL_ERRNO(PP)                                                      \
 	do {                                                                       \
-		strerror_r(errno, (PP)->errstr_buffer, PF_ERROR_STRING_LENGTH);        \
-		(PP)->errstr = (PP)->errstr_buffer;                                    \
+		strerror_r(errno, errstr_buffer, PF_ERROR_STRING_LENGTH);              \
+		(PP)->errstr = errstr_buffer;                                          \
 		return_code = -2;                                                      \
 		goto cleanup;                                                          \
 	} while (0)
@@ -76,11 +78,17 @@ typedef struct dynstr {
 		}                                                                      \
 	} while (0)
 
+#define PF_FAIL_STR_CONST(PP, STR)                                             \
+	do {                                                                       \
+		(PP)->errstr = (STR);                                                  \
+		return_code = -1;                                                      \
+		goto cleanup;                                                          \
+	} while (0)
+
 #define PF_FAIL_STR(PP, ...)                                                   \
 	do {                                                                       \
-		(void)snprintf((PP)->errstr_buffer, PF_ERROR_STRING_LENGTH,            \
-		               __VA_ARGS__);                                           \
-		(PP)->errstr = (PP)->errstr_buffer;                                    \
+		(void)snprintf(errstr_buffer, PF_ERROR_STRING_LENGTH, __VA_ARGS__);    \
+		(PP)->errstr = errstr_buffer;                                          \
 		return_code = -1;                                                      \
 		goto cleanup;                                                          \
 	} while (0)
