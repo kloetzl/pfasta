@@ -160,11 +160,11 @@ char *buffer_begin(struct pfasta_parser *pp) { return pp->read_ptr; }
 
 char *buffer_end(struct pfasta_parser *pp) { return pp->fill_ptr; }
 
-int buffer_advance(struct pfasta_parser *pp, size_t steps) {
+inline int buffer_advance(struct pfasta_parser *pp, size_t steps) {
 	int return_code = 0;
 
 	pp->read_ptr += steps;
-	if (pp->read_ptr >= pp->fill_ptr) {
+	if (UNLIKELY(pp->read_ptr >= pp->fill_ptr)) {
 		assert(pp->read_ptr == pp->fill_ptr);
 		int check = buffer_read(pp); // resets pointers
 		if (UNLIKELY(check)) PF_FAIL_BUBBLE(pp);
@@ -363,6 +363,17 @@ cleanup:
 static int skip_whitespace(struct pfasta_parser *pp) {
 	int return_code = 0;
 
+	// optimise for common case
+	if (LIKELY(buffer_end(pp) - buffer_begin(pp) >= 2 &&
+	           my_isspace(buffer_peek(pp)) &&
+	           !my_isspace(buffer_begin(pp)[1]))) {
+		int newlines = buffer_peek(pp) == '\n' ? 1 : 0;
+		buffer_advance(pp, 1);
+		PF_FAIL_BUBBLE(pp);
+		pp->line_number += newlines;
+		return 0;
+	}
+
 	while (my_isspace(buffer_peek(pp))) {
 		char *split = find_if_is_graph(buffer_begin(pp), buffer_end(pp));
 
@@ -443,7 +454,8 @@ int pfasta_read_name(struct pfasta_parser *pp, struct pfasta_record *pr) {
 	copy_word(pp, &name);
 	PF_FAIL_BUBBLE(pp);
 
-	if (dynstr_len(&name) == 0) PF_FAIL_STR(pp, "Empty name on line %zu.", pp->line_number);
+	if (dynstr_len(&name) == 0)
+		PF_FAIL_STR(pp, "Empty name on line %zu.", pp->line_number);
 
 	pr->name_length = dynstr_len(&name);
 	pr->name = dynstr_move(&name);
@@ -480,7 +492,9 @@ int pfasta_read_comment(struct pfasta_parser *pp, struct pfasta_record *pr) {
 		int check = copy_word(pp, &comment);
 		PF_FAIL_BUBBLE(pp);
 
-		if (buffer_is_eof(pp)) PF_FAIL_STR( pp, "Unexpected EOF in comment on line %zu.", pp->line_number);
+		if (buffer_is_eof(pp))
+			PF_FAIL_STR(pp, "Unexpected EOF in comment on line %zu.",
+			            pp->line_number);
 
 		// iterate non-linebreak whitespace
 		while (isblank(buffer_peek(pp))) {
@@ -524,7 +538,8 @@ int pfasta_read_sequence(struct pfasta_parser *pp, struct pfasta_record *pr) {
 		if (UNLIKELY(check)) PF_FAIL_BUBBLE(pp);
 	}
 
-	if (dynstr_len(&sequence) == 0) PF_FAIL_STR(pp, "Empty sequence on line %zu.", pp->line_number);
+	if (dynstr_len(&sequence) == 0)
+		PF_FAIL_STR(pp, "Empty sequence on line %zu.", pp->line_number);
 
 	pr->sequence_length = dynstr_len(&sequence);
 	pr->sequence = dynstr_move(&sequence);
