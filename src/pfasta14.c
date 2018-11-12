@@ -196,7 +196,39 @@ char *find_first_space(const char *begin, const char *end) {
 	size_t offset = 0;
 	size_t length = end - begin;
 
-	// TODO: vectorize
+#ifdef __SSE2__
+
+	typedef __m128i vec_type;
+	static const size_t vec_size = sizeof(vec_type);
+
+	const vec_type all_tab = _mm_set1_epi8('\t' - 1);
+	const vec_type all_carriage = _mm_set1_epi8('\r' + 1);
+	const vec_type all_space = _mm_set1_epi8(' ');
+
+	size_t vec_offset = 0;
+	size_t vec_length = (end - begin) / vec_size;
+
+	for (; vec_offset < vec_length; vec_offset++) {
+		vec_type chunk;
+		memcpy(&chunk, begin + vec_offset * vec_size, vec_size);
+
+		// isspace: \t <= char <= \r || char == space
+		vec_type v1 = _mm_cmplt_epi8(all_tab, chunk);
+		vec_type v2 = _mm_cmplt_epi8(chunk, all_carriage);
+		vec_type v3 = _mm_cmpeq_epi8(chunk, all_space);
+
+		unsigned int vmask = (_mm_movemask_epi8(v1) & _mm_movemask_epi8(v2)) |
+		                     _mm_movemask_epi8(v3);
+
+		if (UNLIKELY(vmask)) {
+			offset += __builtin_ctz(vmask);
+			offset += vec_offset * vec_size;
+			return (char *)begin + offset;
+		}
+	}
+
+	offset += vec_offset * vec_size;
+#endif
 
 	for (; offset < length; offset++) {
 		if (my_isspace(begin[offset])) break;
@@ -207,8 +239,6 @@ char *find_first_space(const char *begin, const char *end) {
 char *find_first_not_space(const char *begin, const char *end) {
 	size_t offset = 0;
 	size_t length = end - begin;
-
-	// TODO: vectorize
 
 	for (; offset < length; offset++) {
 		if (!my_isspace(begin[offset])) break;
