@@ -9,13 +9,15 @@ PREFIX?="/usr"
 BINDIR?=$(PREFIX)/bin
 LIBDIR?=$(PREFIX)/lib
 INCLUDEDIR?=$(PREFIX)/include
+VALIDATE?=./validate
+FORMAT?=./format
 
 ifeq "$(WITH_LIBBSD)" "1"
 CPPFLAGS+=-isystem $(INCLUDEDIR)/bsd -DLIBBSD_OVERLAY
 LIBS+=-lbsd
 endif
 
-TOOLS= acgt aln2dist aln2maf cchar concat format gc_content revcomp shuffle sim split validate
+TOOLS= acgt aln2dist aln2maf cchar concat format gc_content revcomp shuffle sim split validate #n50
 LOGFILE= test.log
 
 .PHONY: all clean check dist distcheck clang-format install install-lib install-tools
@@ -92,23 +94,24 @@ PASS= $(wildcard test/pass*)
 
 .PHONY: $(PASS) $(XFAIL)
 
-check: sim validate $(PASS) $(XFAIL)
+check: sim $(VALIDATE) $(PASS) $(XFAIL)
 	@ for LENGTH in 1 2 3 10 100 1000 10000; do \
 		echo -n "testing with generated sequence of length $${LENGTH} … "; \
-		(./sim -l "$${LENGTH}" | ./validate 2> $(LOGFILE) ) || \
-		(echo " Unexpected error: $@\n See $(LOGFILE) for details." && exit 1); \
+		(./sim -l "$${LENGTH}" | $(VALIDATE) 2> $(LOGFILE) ) || \
+		(echo -e " Unexpected error: $@\n See $(LOGFILE) for details." && exit 1); \
 		echo "pass."; \
 	done
 	rm -f $(LOGFILE)
 
-$(PASS): format
+$(PASS): $(FORMAT)
+	echo ">>$(VALIDATE)"
 	@echo -n "testing $@ … "
-	@./format $@ | diff -bB - $@ 2> $(LOGFILE) || \
-		(echo " Unexpected error: $@\n See $(LOGFILE) for details." && exit 1)
+	@$(FORMAT) $@ | diff -bB - $@ 2> $(LOGFILE) || \
+		(echo -e " Unexpected error: $@\n See $(LOGFILE) for details." && exit 1)
 	@echo "pass."
 
-$(XFAIL): validate
+$(XFAIL): $(VALIDATE)
 	@echo -n "testing $@ … "
-	@! ./validate $@ 2> $(LOGFILE) || \
-		(echo " Unexpected pass: $@\n See $(LOGFILE) for details." && exit 1)
+	@! $(VALIDATE) $@ 2> $(LOGFILE) || \
+		(echo -e " Unexpected pass: $@\n See $(LOGFILE) for details." && exit 1)
 	@echo "expected fail."
