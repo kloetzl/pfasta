@@ -29,12 +29,22 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
-#include <threads.h>
 #include <unistd.h>
 
 #include "pfasta.h"
 
-// #define thread_local
+#ifdef __STDC_NO_THREADS__
+#define thread_local
+#else
+#include <threads.h>
+#endif
+
+/** The following is the maximum length of an error string. It has to be
+ * carefully chosen, so that all calls to PF_FAIL_STR succeed. For instance,
+ * the line number can account for up to 20 characters.
+ */
+#define PF_ERROR_STRING_LENGTH 100
+
 thread_local char errstr_buffer[PF_ERROR_STRING_LENGTH];
 
 void *reallocarray(void *ptr, size_t nmemb, size_t size);
