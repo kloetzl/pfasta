@@ -66,18 +66,17 @@ void process(const char *file_name) {
 	    strcmp(file_name, "-") == 0 ? STDIN_FILENO : open(file_name, O_RDONLY);
 	if (file_descriptor < 0) err(1, "%s", file_name);
 
-	pfasta_file pf;
-	int l = pfasta_parse(&pf, file_descriptor);
-	if (l != 0) {
-		errx(1, "%s: %s", file_name, pfasta_strerror(&pf));
-	}
+	struct pfasta_parser pp = pfasta_init(file_descriptor);
+	if (pp.errstr) errx(1, "%s: %s", file_name, pp.errstr);
 
-	pfasta_seq ps;
-	while ((l = pfasta_read(&pf, &ps)) == 0) {
+	while (!pp.done) {
+		struct pfasta_record pr = pfasta_read(&pp);
+		if (pp.errstr) errx(2, "%s: %s", file_name, pp.errstr);
+
 		char *out_file_name;
 
 		int check =
-		    asprintf(&out_file_name, "%s/%s%s", outdir, ps.name, suffix);
+		    asprintf(&out_file_name, "%s/%s%s", outdir, pr.name, suffix);
 		if (check < 0) {
 			err(errno, "building output path failed");
 		}
@@ -88,18 +87,14 @@ void process(const char *file_name) {
 		}
 
 		int file_descriptor = fileno(output);
-		pfasta_print(file_descriptor, &ps, line_length);
+		pfasta_print(file_descriptor, &pr, line_length);
 
 		fclose(output);
 		free(out_file_name);
-		pfasta_seq_free(&ps);
+		pfasta_record_free(&pr);
 	}
 
-	if (l < 0) {
-		errx(1, "%s: %s", file_name, pfasta_strerror(&pf));
-	}
-
-	pfasta_free(&pf);
+	pfasta_free(&pp);
 	close(file_descriptor);
 }
 
