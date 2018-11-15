@@ -57,24 +57,23 @@ void process(const char *file_name) {
 	    strcmp(file_name, "-") == 0 ? STDIN_FILENO : open(file_name, O_RDONLY);
 	if (file_descriptor < 0) err(1, "%s", file_name);
 
-	pfasta_file pf;
-	int l = pfasta_parse(&pf, file_descriptor);
-	if (l != 0) {
-		errx(1, "%s: %s", file_name, pfasta_strerror(&pf));
-	}
+	struct pfasta_parser pp = pfasta_init(file_descriptor);
+	if (pp.errstr) errx(1, "%s: %s", file_name, pp.errstr);
 
-	pfasta_seq ps;
-	while ((l = pfasta_read(&pf, &ps)) == 0) {
-		pfasta_seq rc;
-		size_t len = strlen(ps.seq);
+	while (!pp.done) {
+		struct pfasta_record pr = pfasta_read(&pp);
+		if (pp.errstr) errx(2, "%s: %s", file_name, pp.errstr);
 
-		rc.name = strdup(ps.name);
+		struct pfasta_record rc;
+		size_t len = pr.sequence_length;
+
+		rc.name = strdup(pr.name);
 		if (!rc.name) err(errno, "out of memory");
 		rc.comment = NULL;
-		rc.seq = revcomp(ps.seq, len);
+		rc.sequence = revcomp(pr.sequence, len);
 
-		if (ps.comment) {
-			int check = asprintf(&rc.comment, "%s revcomp", ps.comment);
+		if (pr.comment) {
+			int check = asprintf(&rc.comment, "%s revcomp", pr.comment);
 			if (check < 0) err(errno, "out of memory");
 		} else {
 			rc.comment = strdup("revcomp");
@@ -82,15 +81,11 @@ void process(const char *file_name) {
 		}
 
 		pfasta_print(STDOUT_FILENO, &rc, line_length);
-		pfasta_seq_free(&ps);
-		pfasta_seq_free(&rc);
+		pfasta_record_free(&pr);
+		pfasta_record_free(&rc);
 	}
 
-	if (l < 0) {
-		errx(1, "%s: %s", file_name, pfasta_strerror(&pf));
-	}
-
-	pfasta_free(&pf);
+	pfasta_free(&pp);
 	close(file_descriptor);
 }
 
