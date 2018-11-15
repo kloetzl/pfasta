@@ -55,22 +55,18 @@ void process(const char *file_name) {
 	    strcmp(file_name, "-") == 0 ? STDIN_FILENO : open(file_name, O_RDONLY);
 	if (file_descriptor < 0) err(1, "%s", file_name);
 
-	pfasta_file pf;
-	int l = pfasta_parse(&pf, file_descriptor);
-	if (l != 0) {
-		errx(1, "%s: %s", file_name, pfasta_strerror(&pf));
+	struct pfasta_parser pp = pfasta_init(file_descriptor);
+	if (pp.errstr) errx(1, "%s: %s", file_name, pp.errstr);
+
+	while (!pp.done) {
+		struct pfasta_record pr = pfasta_read(&pp);
+		if (pp.errstr) errx(2, "%s: %s", file_name, pp.errstr);
+
+		pfasta_print(STDOUT_FILENO, &pr, line_length);
+		pfasta_record_free(&pr);
 	}
 
-	pfasta_seq ps;
-	while ((l = pfasta_read(&pf, &ps)) == 0) {
-		pfasta_print(STDOUT_FILENO, &ps, line_length);
-	}
-
-	if (l < 0) {
-		errx(1, "%s: %s", file_name, pfasta_strerror(&pf));
-	}
-
-	pfasta_free(&pf);
+	pfasta_free(&pp);
 	close(file_descriptor);
 }
 
