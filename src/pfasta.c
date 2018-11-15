@@ -19,13 +19,10 @@
 #include <ctype.h>
 #include <err.h>
 #include <errno.h>
-#include <fcntl.h>
 #include <inttypes.h>
-#include <malloc.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/stat.h>
 #include <unistd.h>
 
 #include "pfasta.h"
@@ -59,7 +56,7 @@ enum { NO_ERROR, E_EOF, E_ERROR, E_ERRNO, E_BUBBLE, E_STR, E_STR_CONST };
 
 #define PF_FAIL_ERRNO(PP)                                                      \
 	do {                                                                       \
-		strerror_r(errno, errstr_buffer, PF_ERROR_STRING_LENGTH);              \
+		(void)strerror_r(errno, errstr_buffer, PF_ERROR_STRING_LENGTH);        \
 		(PP)->errstr = errstr_buffer;                                          \
 		return_code = E_ERRNO;                                                 \
 		goto cleanup;                                                          \
@@ -528,34 +525,11 @@ static inline int dynstr_init(dynstr *ds, struct pfasta_parser *pp) {
 	if (!ds->str) PF_FAIL_ERRNO(pp);
 
 	ds->str[0] = '\0';
-	// ds->capacity = 61;
-	ds->capacity = malloc_usable_size(ds->str);
+	ds->capacity = 61;
 	ds->count = 0;
 
 cleanup:
 	return return_code;
-}
-
-/** @brief A append a character to a string.
- *
- * @param ds - A reference to the dynstr container.
- * @param c - The new character.
- *
- * @returns 0 iff successful.
- */
-static inline int dynstr_put(dynstr *ds, char c) {
-	if (ds->count >= ds->capacity - 1) {
-		char *neu = reallocarray(ds->str, ds->capacity / 2, 3);
-		if (!neu) {
-			dynstr_free(ds);
-			return -1;
-		}
-		ds->str = neu;
-		ds->capacity = (ds->capacity / 2) * 3;
-	}
-
-	ds->str[ds->count++] = c;
-	return 0;
 }
 
 /** @brief A append more than one character to a string.
@@ -578,8 +552,7 @@ static inline int dynstr_append(dynstr *ds, const char *str, size_t length,
 			PF_FAIL_ERRNO(pp);
 		}
 		ds->str = neu;
-		// ds->capacity = (required / 2) * 3;
-		ds->capacity = malloc_usable_size(ds->str);
+		ds->capacity = (required / 2) * 3;
 	}
 
 	memcpy(ds->str + ds->count, str, length);
