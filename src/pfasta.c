@@ -35,6 +35,7 @@
 #include "pfasta.h"
 
 // #define thread_local
+thread_local char errstr_buffer[PF_ERROR_STRING_LENGTH];
 
 void *reallocarray(void *ptr, size_t nmemb, size_t size);
 

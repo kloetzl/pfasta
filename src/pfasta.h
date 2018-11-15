@@ -1,8 +1,6 @@
 #ifndef PFASTA_H
 #define PFASTA_H
 
-#include <threads.h>
-
 /** The following is the maximum length of an error string. It has to be
  * carefully chosen, so that all calls to PF_FAIL_STR succeed. For instance,
  * the line number can account for up to 20 characters.
@@ -27,8 +25,6 @@ typedef struct dynstr {
 	char *str;
 	size_t capacity, count;
 } dynstr;
-
-thread_local char errstr_buffer[PF_ERROR_STRING_LENGTH];
 
 void pfasta_record_free(struct pfasta_record *pr);
 void pfasta_free(struct pfasta_parser *pp);
