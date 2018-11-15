@@ -104,7 +104,6 @@ check: sim $(VALIDATE) $(PASS) $(XFAIL)
 	rm -f $(LOGFILE)
 
 $(PASS): $(FORMAT)
-	echo ">>$(VALIDATE)"
 	@echo -n "testing $@ … "
 	@$(FORMAT) $@ | diff -bB - $@ 2> $(LOGFILE) || \
 		(echo -e " Unexpected error: $@\n See $(LOGFILE) for details." && exit 1)
