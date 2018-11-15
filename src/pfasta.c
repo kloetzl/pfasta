@@ -17,14 +17,11 @@
 
 #include <assert.h>
 #include <ctype.h>
-#include <emmintrin.h>
 #include <err.h>
 #include <errno.h>
 #include <fcntl.h>
-#include <immintrin.h>
 #include <inttypes.h>
 #include <malloc.h>
-#include <nmmintrin.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -32,6 +29,10 @@
 #include <unistd.h>
 
 #include "pfasta.h"
+
+#ifdef __SSE2__
+#include <emmintrin.h>
+#endif
 
 #ifdef __STDC_NO_THREADS__
 #define thread_local
