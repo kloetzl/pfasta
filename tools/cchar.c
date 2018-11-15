@@ -9,7 +9,7 @@
 
 #include "pfasta.h"
 
-void count(const pfasta_seq *);
+void count(const struct pfasta_record *);
 void print_counts(const char *name, const size_t *counts);
 void usage(int exit_code);
 void process(const char *file_name);
@@ -61,27 +61,22 @@ void process(const char *file_name) {
 	    strcmp(file_name, "-") == 0 ? STDIN_FILENO : open(file_name, O_RDONLY);
 	if (file_descriptor < 0) err(1, "%s", file_name);
 
-	pfasta_file pf;
-	int l = pfasta_parse(&pf, file_descriptor);
-	if (l != 0) {
-		errx(1, "%s: %s", file_name, pfasta_strerror(&pf));
-	}
+	struct pfasta_parser pp = pfasta_init(file_descriptor);
+	if (pp.errstr) errx(1, "%s: %s", file_name, pp.errstr);
 
-	pfasta_seq ps;
-	while ((l = pfasta_read(&pf, &ps)) == 0) {
-		count(&ps);
+	while (!pp.done) {
+		struct pfasta_record pr = pfasta_read(&pp);
+		if (pp.errstr) errx(2, "%s: %s", file_name, pp.errstr);
+
+		count(&pr);
 		if (FLAGS & SPLIT) {
-			print_counts(ps.name, counts_local);
+			print_counts(pr.name, counts_local);
 			bzero(counts_local, sizeof(counts_local));
 		}
-		pfasta_seq_free(&ps);
+		pfasta_record_free(&pr);
 		for (size_t i = 0; i < CHARS; i++) {
 			counts_total[i] += counts_local[i];
 		}
-	}
-
-	if (l < 0) {
-		errx(1, "%s: %s", file_name, pfasta_strerror(&pf));
 	}
 
 	if (!(FLAGS & SPLIT)) {
@@ -89,13 +84,13 @@ void process(const char *file_name) {
 		bzero(counts_total, sizeof(counts_total));
 	}
 
-	pfasta_free(&pf);
+	pfasta_free(&pp);
 	close(file_descriptor);
 }
 
-void count(const pfasta_seq *ps) {
+void count(const struct pfasta_record *pr) {
 	bzero(counts_local, sizeof(counts_local));
-	const char *ptr = ps->seq;
+	const char *ptr = pr->sequence;
 
 	while (*ptr) {
 		unsigned char c = *ptr;

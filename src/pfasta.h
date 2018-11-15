@@ -31,5 +31,4 @@ void pfasta_free(struct pfasta_parser *pp);
 struct pfasta_parser pfasta_init(int file_descriptor);
 struct pfasta_record pfasta_read(struct pfasta_parser *pp);
 
-
 #endif /* PFASTA_H */
