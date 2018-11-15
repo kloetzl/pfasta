@@ -17,40 +17,40 @@ void usage(int exit_code);
 void process(const char *file_name);
 
 struct seq_vector {
-	pfasta_seq *data;
+	struct pfasta_record *data;
 	size_t size;
 	size_t capacity;
 } sv;
 
 void sv_init() {
-	sv.data = malloc(4 * sizeof(pfasta_seq));
+	sv.data = malloc(4 * sizeof(struct pfasta_record));
 	sv.size = 0;
 	sv.capacity = 4;
 	if (!sv.data) err(errno, "malloc failed");
 }
 
-void sv_emplace(pfasta_seq ps) {
+void sv_emplace(struct pfasta_record pr) {
 	if (sv.size < sv.capacity) {
-		sv.data[sv.size++] = ps;
+		sv.data[sv.size++] = pr;
 	} else {
-		sv.data =
-		    reallocarray(sv.data, sv.capacity / 2, 3 * sizeof(pfasta_seq));
+		sv.data = reallocarray(sv.data, sv.capacity / 2,
+		                       3 * sizeof(struct pfasta_record));
 		if (!sv.data) err(errno, "realloc failed");
 		// reallocarray would return NULL, if mult would overflow
 		sv.capacity = (sv.capacity / 2) * 3;
-		sv.data[sv.size++] = ps;
+		sv.data[sv.size++] = pr;
 	}
 }
 
 void sv_free() {
 	for (size_t i = 0; i < sv.size; i++) {
-		pfasta_seq_free(&sv.data[i]);
+		pfasta_record_free(&sv.data[i]);
 	}
 	free(sv.data);
 }
 
 void sv_swap(size_t i, size_t j) {
-	pfasta_seq temp = sv.data[i];
+	struct pfasta_record temp = sv.data[i];
 	sv.data[i] = sv.data[j];
 	sv.data[j] = temp;
 }
@@ -124,22 +124,17 @@ void process(const char *file_name) {
 	    strcmp(file_name, "-") == 0 ? STDIN_FILENO : open(file_name, O_RDONLY);
 	if (file_descriptor < 0) err(1, "%s", file_name);
 
-	pfasta_file pf;
-	int l = pfasta_parse(&pf, file_descriptor);
-	if (l != 0) {
-		errx(1, "%s: %s", file_name, pfasta_strerror(&pf));
+	struct pfasta_parser pp = pfasta_init(file_descriptor);
+	if (pp.errstr) errx(1, "%s: %s", file_name, pp.errstr);
+
+	while (!pp.done) {
+		struct pfasta_record pr = pfasta_read(&pp);
+		if (pp.errstr) errx(2, "%s: %s", file_name, pp.errstr);
+
+		sv_emplace(pr);
 	}
 
-	pfasta_seq ps;
-	while ((l = pfasta_read(&pf, &ps)) == 0) {
-		sv_emplace(ps);
-	}
-
-	if (l < 0) {
-		errx(1, "%s: %s", file_name, pfasta_strerror(&pf));
-	}
-
-	pfasta_free(&pf);
+	pfasta_free(&pp);
 	close(file_descriptor);
 }
 
