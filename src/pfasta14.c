@@ -32,6 +32,8 @@
 #include <threads.h>
 #include <unistd.h>
 
+#define thread_local
+
 void *reallocarray(void *ptr, size_t nmemb, size_t size);
 
 #define PF_ERROR_STRING_LENGTH 100
@@ -40,10 +42,11 @@ void *reallocarray(void *ptr, size_t nmemb, size_t size);
 #define LIKELY(X) __builtin_expect((intptr_t)(X), 1)
 #define UNLIKELY(X) __builtin_expect((intptr_t)(X), 0)
 
+enum { NO_ERROR, E_EOF, E_ERROR, E_ERRNO, E_BUBBLE, E_STR, E_STR_CONST };
+
 struct pfasta_record {
 	char *name, *comment, *sequence;
 	size_t name_length, comment_length, sequence_length;
-	const char *errstr;
 };
 
 struct pfasta_parser {
@@ -66,14 +69,22 @@ thread_local char errstr_buffer[PF_ERROR_STRING_LENGTH];
 	do {                                                                       \
 		strerror_r(errno, errstr_buffer, PF_ERROR_STRING_LENGTH);              \
 		(PP)->errstr = errstr_buffer;                                          \
-		return_code = -2;                                                      \
+		return_code = E_ERRNO;                                                 \
 		goto cleanup;                                                          \
+	} while (0)
+
+#define PF_FAIL_BUBBLE_CHECK(PP, CHECK)                                        \
+	do {                                                                       \
+		if (UNLIKELY(CHECK)) {                                                 \
+			return_code = CHECK;                                               \
+			goto cleanup;                                                      \
+		}                                                                      \
 	} while (0)
 
 #define PF_FAIL_BUBBLE(PP)                                                     \
 	do {                                                                       \
 		if (UNLIKELY((PP)->errstr)) {                                          \
-			return_code = -3;                                                  \
+			return_code = E_BUBBLE;                                            \
 			goto cleanup;                                                      \
 		}                                                                      \
 	} while (0)
@@ -81,7 +92,7 @@ thread_local char errstr_buffer[PF_ERROR_STRING_LENGTH];
 #define PF_FAIL_STR_CONST(PP, STR)                                             \
 	do {                                                                       \
 		(PP)->errstr = (STR);                                                  \
-		return_code = -1;                                                      \
+		return_code = E_STR_CONST;                                             \
 		goto cleanup;                                                          \
 	} while (0)
 
@@ -89,7 +100,7 @@ thread_local char errstr_buffer[PF_ERROR_STRING_LENGTH];
 	do {                                                                       \
 		(void)snprintf(errstr_buffer, PF_ERROR_STRING_LENGTH, __VA_ARGS__);    \
 		(PP)->errstr = errstr_buffer;                                          \
-		return_code = -1;                                                      \
+		return_code = E_STR;                                                   \
 		goto cleanup;                                                          \
 	} while (0)
 
@@ -106,9 +117,6 @@ int buffer_is_eof(const struct pfasta_parser *pp);
 int buffer_is_empty(const struct pfasta_parser *pp);
 int buffer_read(struct pfasta_parser *pp);
 
-char *find_if_is_graph(const char *begin, const char *end);
-char *find_if_is_not_graph(const char *begin, const char *end);
-
 static inline int dynstr_init(dynstr *ds, struct pfasta_parser *pp);
 static inline void dynstr_free(dynstr *ds);
 static inline char *dynstr_move(dynstr *ds);
@@ -116,8 +124,8 @@ static inline size_t dynstr_len(const dynstr *ds);
 static inline int dynstr_append(dynstr *ds, const char *str, size_t length,
                                 struct pfasta_parser *pp);
 
-int my_isgraph(unsigned char c) { return (c >= '!') && (c <= '~'); }
-int my_isspace(unsigned char c) {
+int my_isspace(int c) {
+	// ascii whitespace
 	return (c >= '\t' && c <= '\r') || (c == ' ');
 }
 
@@ -127,22 +135,23 @@ int buffer_init(struct pfasta_parser *pp) {
 	pp->buffer = malloc(BUFFER_SIZE);
 	if (!pp->buffer) PF_FAIL_ERRNO(pp);
 
-	buffer_read(pp);
-	PF_FAIL_BUBBLE(pp);
+	int check = buffer_read(pp);
+	PF_FAIL_BUBBLE_CHECK(pp, check);
 
 cleanup:
 	return return_code;
 }
 
 int buffer_read(struct pfasta_parser *pp) {
-	int return_code = 0;
+	int return_code = NO_ERROR;
 	ssize_t count = read(pp->file_descriptor, pp->buffer, BUFFER_SIZE);
 
 	if (UNLIKELY(count < 0)) PF_FAIL_ERRNO(pp);
 	if (UNLIKELY(count == 0)) { // EOF
 		pp->fill_ptr = pp->buffer;
 		pp->read_ptr = pp->buffer + 1;
-		return 1;
+		pp->errstr = "EOF (maybe error)"; // enable bubbling
+		return E_EOF;
 	}
 
 	pp->read_ptr = pp->buffer;
@@ -167,7 +176,7 @@ inline int buffer_advance(struct pfasta_parser *pp, size_t steps) {
 	if (UNLIKELY(pp->read_ptr >= pp->fill_ptr)) {
 		assert(pp->read_ptr == pp->fill_ptr);
 		int check = buffer_read(pp); // resets pointers
-		if (UNLIKELY(check)) PF_FAIL_BUBBLE(pp);
+		PF_FAIL_BUBBLE_CHECK(pp, check);
 	}
 
 cleanup:
@@ -182,12 +191,56 @@ int buffer_is_eof(const struct pfasta_parser *pp) {
 	return pp->read_ptr > pp->fill_ptr;
 }
 
-char *find_if_is_graph(const char *begin, const char *end) {
+char *find_first_space(const char *begin, const char *end) {
+	size_t offset = 0;
+	size_t length = end - begin;
+
+#ifdef __SSE2__
+
+	typedef __m128i vec_type;
+	static const size_t vec_size = sizeof(vec_type);
+
+	const vec_type all_tab = _mm_set1_epi8('\t' - 1);
+	const vec_type all_carriage = _mm_set1_epi8('\r' + 1);
+	const vec_type all_space = _mm_set1_epi8(' ');
+
+	size_t vec_offset = 0;
+	size_t vec_length = (end - begin) / vec_size;
+
+	for (; vec_offset < vec_length; vec_offset++) {
+		vec_type chunk;
+		memcpy(&chunk, begin + vec_offset * vec_size, vec_size);
+
+		// isspace: \t <= char <= \r || char == space
+		vec_type v1 = _mm_cmplt_epi8(all_tab, chunk);
+		vec_type v2 = _mm_cmplt_epi8(chunk, all_carriage);
+		vec_type v3 = _mm_cmpeq_epi8(chunk, all_space);
+
+		unsigned int vmask = (_mm_movemask_epi8(v1) & _mm_movemask_epi8(v2)) |
+		                     _mm_movemask_epi8(v3);
+
+		if (UNLIKELY(vmask)) {
+			offset += __builtin_ctz(vmask);
+			offset += vec_offset * vec_size;
+			return (char *)begin + offset;
+		}
+	}
+
+	offset += vec_offset * vec_size;
+#endif
+
+	for (; offset < length; offset++) {
+		if (my_isspace(begin[offset])) break;
+	}
+	return (char *)begin + offset;
+}
+
+char *find_first_not_space(const char *begin, const char *end) {
 	size_t offset = 0;
 	size_t length = end - begin;
 
 	for (; offset < length; offset++) {
-		if (LIKELY(my_isgraph(begin[offset]))) break;
+		if (!my_isspace(begin[offset])) break;
 	}
 	return (char *)begin + offset;
 }
@@ -204,156 +257,20 @@ size_t count_newlines(const char *begin, const char *end) {
 	return newlines;
 }
 
-__attribute__((target_clones("avx2", "avx", "sse2", "default"))) char *
-find_if_is_not_graph(const char *begin, const char *end) {
-	size_t length = end - begin;
-	size_t offset = 0;
-
-#ifdef __AVX2__
-
-	const __m256i avx2bang = _mm256_set1_epi8('!' - 1);
-	const __m256i avx2del = _mm256_set1_epi8(127); // DEL
-
-	size_t avx2_offset = 0;
-	size_t avx2_length = length / sizeof(__m256i);
-
-	for (; avx2_offset < avx2_length; avx2_offset++) {
-		__m256i b;
-		memcpy(&b, begin + avx2_offset * sizeof(__m256i), sizeof(b));
-
-		__m256i v1 = _mm256_cmpgt_epi8(avx2bang, b);
-		__m256i v2 = _mm256_cmpeq_epi8(b, avx2del);
-
-		unsigned int vmask =
-		    _mm256_movemask_epi8(v1) | _mm256_movemask_epi8(v2);
-		if (UNLIKELY(~vmask)) {
-			// rightmost 1 is pos of first invalid byte
-			offset += __builtin_ctz(vmask);
-			offset += avx2_offset * sizeof(__m256i);
-			return (char *)begin + offset;
-		}
-	}
-
-	offset += avx2_offset * sizeof(__m256i);
-#endif
-
-	size_t i = offset;
-	for (; LIKELY(i < length); i++) {
-		char c = begin[i];
-		if (UNLIKELY(c < '!' || c == 127)) return (char *)&begin[i];
-	}
-	return (char *)end;
-}
-
-char *find_if_is_not_graph_indexed_sse2(const char *begin, const char *end) {
-	size_t offset = 0;
-	size_t length = end - begin;
-
-	// There is a great explanation at [1] how one can quickly scan for a
-	// certain character in a string using SIMD instructions. Here I have
-	// settled for an SSE2 implementation (and a manual fallback). Using
-	// pcmpistri I could not measure any improvement. Same for AVX2.
-
-	// [1]:
-	// http://natsys-lab.blogspot.de/2016/10/http-strings-processing-using-c-sse42.html
-
-#ifdef __AVX2__
-
-	const __m256i avx2bang = _mm256_set1_epi8('!' - 1);
-	const __m256i avx2del = _mm256_set1_epi8(127); // DEL
-
-	size_t avx2_offset = 0;
-	size_t avx2_length = length / sizeof(__m256i);
-
-	for (; avx2_offset < avx2_length; avx2_offset++) {
-		__m256i b;
-		memcpy(&b, begin + avx2_offset * sizeof(__m256i), sizeof(b));
-
-		__m256i v1 = _mm256_cmpgt_epi8(avx2bang, b);
-		__m256i v2 = _mm256_cmpeq_epi8(b, avx2del);
-
-		unsigned int vmask =
-		    _mm256_movemask_epi8(v1) | _mm256_movemask_epi8(v2);
-		if (UNLIKELY(vmask)) {
-			// rightmost 1 is pos of first invalid byte
-			offset += __builtin_ctz(vmask);
-			offset += avx2_offset * sizeof(__m256i);
-			return (char *)begin + offset;
-		}
-	}
-
-	offset += avx2_offset * sizeof(__m256i);
-#else
-#ifdef __SSE2__
-
-	const __m128i allbang = _mm_set1_epi8('!');
-	const __m128i alldel = _mm_set1_epi8(127); // DEL
-
-	size_t long_offset = 0;
-	size_t long_length = (end - /*offset -*/ begin) / sizeof(__m128i);
-
-	for (; long_offset < long_length; long_offset++) {
-		__m128i b;
-		memcpy(&b, begin + /*offset +*/ long_offset * sizeof(__m128i),
-		       sizeof(b));
-
-		__m128i v1 = _mm_cmplt_epi8(b, allbang);
-		__m128i v2 = _mm_cmpeq_epi8(b, alldel);
-
-		unsigned int vmask = _mm_movemask_epi8(v1) | _mm_movemask_epi8(v2);
-		if (UNLIKELY(vmask)) {
-			// rightmost 1 is pos of first invalid byte
-			offset += __builtin_ctz(vmask);
-			offset += long_offset * sizeof(__m128i);
-			return (char *)begin + offset;
-		}
-	}
-
-	offset += long_offset * sizeof(__m128i);
-
-#else
-
-	// Fallback method using bit twiddling hacks. Almost as fast as SSE2.
-	// http://graphics.stanford.edu/~seander/bithacks.html
-
-#define hasless(x, n) (((x) - ~0ULL / 255 * (n)) & ~(x) & ~0ULL / 255 * 128)
-#define hasvalue(x, n) (hasless((x) ^ (~0ULL / 255 * (n)), 1))
-
-	size_t long_offset = 0;
-	size_t long_length = (end - begin - offset) / sizeof(long);
-
-	for (; long_offset < long_length; long_offset++) {
-		long buffer;
-		memcpy(&buffer, begin + offset + long_offset * sizeof(buffer),
-		       sizeof(buffer));
-		if (hasless(buffer, '!')) break;
-		if (hasvalue(buffer, '~' + 1)) break;
-	}
-
-	offset += long_offset * sizeof(long);
-
-#endif
-#endif
-
-	for (; offset < length; offset++) {
-		if (LIKELY(!my_isgraph(begin[offset]))) break;
-	}
-	return (char *)begin + offset;
-}
-
 static int copy_word(struct pfasta_parser *pp, dynstr *target) {
 	int return_code = 0;
 
-	while (LIKELY(my_isgraph(buffer_peek(pp)))) {
-		char *end_of_word =
-		    find_if_is_not_graph_indexed_sse2(buffer_begin(pp), buffer_end(pp));
+	while (LIKELY(!my_isspace(buffer_peek(pp)))) {
+		char *end_of_word = find_first_space(buffer_begin(pp), buffer_end(pp));
 		size_t word_length = end_of_word - buffer_begin(pp);
 
+		assert(word_length > 0);
+
 		int check = dynstr_append(target, buffer_begin(pp), word_length, pp);
-		if (UNLIKELY(check)) PF_FAIL_BUBBLE(pp);
+		PF_FAIL_BUBBLE_CHECK(pp, check);
 
 		check = buffer_advance(pp, word_length);
-		if (UNLIKELY(check)) PF_FAIL_BUBBLE(pp);
+		PF_FAIL_BUBBLE_CHECK(pp, check);
 	}
 
 cleanup:
@@ -363,24 +280,13 @@ cleanup:
 static int skip_whitespace(struct pfasta_parser *pp) {
 	int return_code = 0;
 
-	// optimise for common case
-	if (LIKELY(buffer_end(pp) - buffer_begin(pp) >= 2 &&
-	           my_isspace(buffer_peek(pp)) &&
-	           !my_isspace(buffer_begin(pp)[1]))) {
-		int newlines = buffer_peek(pp) == '\n' ? 1 : 0;
-		buffer_advance(pp, 1);
-		PF_FAIL_BUBBLE(pp);
-		pp->line_number += newlines;
-		return 0;
-	}
-
 	while (my_isspace(buffer_peek(pp))) {
-		char *split = find_if_is_graph(buffer_begin(pp), buffer_end(pp));
+		char *split = find_first_not_space(buffer_begin(pp), buffer_end(pp));
 
 		// advance may clear the buffer. So count first …
 		size_t newlines = count_newlines(buffer_begin(pp), split);
 		int check = buffer_advance(pp, split - buffer_begin(pp));
-		if (UNLIKELY(check)) PF_FAIL_BUBBLE(pp);
+		PF_FAIL_BUBBLE_CHECK(pp, check);
 
 		// … and then increase the counter.
 		pp->line_number += newlines;
@@ -396,8 +302,8 @@ struct pfasta_parser pfasta_init(int file_descriptor) {
 	pp.line_number = 1;
 
 	pp.file_descriptor = file_descriptor;
-	buffer_init(&pp);
-	PF_FAIL_BUBBLE(&pp);
+	int check = buffer_init(&pp);
+	if (check && check != E_EOF) PF_FAIL_BUBBLE_CHECK(&pp, check);
 
 	if (buffer_is_empty(&pp) || buffer_is_eof(&pp)) {
 		PF_FAIL_STR(&pp, "File is empty.");
@@ -420,14 +326,14 @@ struct pfasta_record pfasta_read(struct pfasta_parser *pp) {
 	int return_code = 0;
 	struct pfasta_record pr = {0};
 
-	pfasta_read_name(pp, &pr);
-	PF_FAIL_BUBBLE(pp);
+	int check = pfasta_read_name(pp, &pr);
+	PF_FAIL_BUBBLE_CHECK(pp, check);
 
-	pfasta_read_comment(pp, &pr);
-	PF_FAIL_BUBBLE(pp);
+	check = pfasta_read_comment(pp, &pr);
+	PF_FAIL_BUBBLE_CHECK(pp, check);
 
-	pfasta_read_sequence(pp, &pr);
-	PF_FAIL_BUBBLE(pp);
+	check = pfasta_read_sequence(pp, &pr);
+	PF_FAIL_BUBBLE_CHECK(pp, check);
 
 cleanup:
 	if (return_code) {
@@ -446,12 +352,19 @@ int pfasta_read_name(struct pfasta_parser *pp, struct pfasta_record *pr) {
 	PF_FAIL_BUBBLE(pp);
 
 	assert(!buffer_is_empty(pp));
-	assert(buffer_peek(pp) == '>');
+	if (buffer_peek(pp) != '>') {
+		PF_FAIL_STR(pp, "Expected '>' but found '%c' on line %zu.",
+		            buffer_peek(pp), pp->line_number);
+	}
 
-	buffer_advance(pp, 1); // skip >
+	int check = buffer_advance(pp, 1); // skip >
+	if (check == E_EOF)
+		PF_FAIL_STR(pp, "Unexpected EOF in name on line %zu.", pp->line_number);
 	PF_FAIL_BUBBLE(pp);
 
-	copy_word(pp, &name);
+	check = copy_word(pp, &name);
+	if (check == E_EOF)
+		PF_FAIL_STR(pp, "Unexpected EOF in name on line %zu.", pp->line_number);
 	PF_FAIL_BUBBLE(pp);
 
 	if (dynstr_len(&name) == 0)
@@ -482,29 +395,26 @@ int pfasta_read_comment(struct pfasta_parser *pp, struct pfasta_record *pr) {
 
 	assert(!buffer_is_empty(pp));
 
-	buffer_advance(pp, 1); // skip first whitespace
+	int check = buffer_advance(pp, 1); // skip first whitespace
+	if (check == E_EOF) goto label_eof;
 	PF_FAIL_BUBBLE(pp);
 
 	assert(!buffer_is_empty(pp));
 
 	// get comment
 	while (buffer_peek(pp) != '\n') {
-		int check = copy_word(pp, &comment);
-		PF_FAIL_BUBBLE(pp);
+		check = dynstr_append(&comment, buffer_begin(pp), 1, pp);
+		PF_FAIL_BUBBLE_CHECK(pp, check);
 
-		if (buffer_is_eof(pp))
-			PF_FAIL_STR(pp, "Unexpected EOF in comment on line %zu.",
-			            pp->line_number);
-
-		// iterate non-linebreak whitespace
-		while (isblank(buffer_peek(pp))) {
-			dynstr_append(&comment, buffer_begin(pp), 1, pp);
-			PF_FAIL_BUBBLE(pp);
-
-			buffer_advance(pp, 1);
-			PF_FAIL_BUBBLE(pp);
-		}
+		check = buffer_advance(pp, 1);
+		if (check == E_EOF) goto label_eof;
+		PF_FAIL_BUBBLE_CHECK(pp, check);
 	}
+
+label_eof:
+	if (buffer_is_eof(pp))
+		PF_FAIL_STR(pp, "Unexpected EOF in comment on line %zu.",
+		            pp->line_number);
 
 	pr->comment_length = dynstr_len(&comment);
 	pr->comment = dynstr_move(&comment);
@@ -527,15 +437,27 @@ int pfasta_read_sequence(struct pfasta_parser *pp, struct pfasta_record *pr) {
 	assert(!buffer_is_eof(pp));
 	assert(buffer_peek(pp) == '\n');
 
-	skip_whitespace(pp);
-	PF_FAIL_BUBBLE(pp);
+	int check = skip_whitespace(pp);
+	if (check == E_EOF)
+		PF_FAIL_STR(pp, "Empty sequence on line %zu.", pp->line_number);
+	PF_FAIL_BUBBLE_CHECK(pp, check);
 
 	while (LIKELY(isalpha(buffer_peek(pp)))) {
 		int check = copy_word(pp, &sequence);
-		if (UNLIKELY(check)) PF_FAIL_BUBBLE(pp);
+		if (UNLIKELY(check == E_EOF)) break;
+		PF_FAIL_BUBBLE_CHECK(pp, check);
 
-		check = skip_whitespace(pp);
-		if (UNLIKELY(check)) PF_FAIL_BUBBLE(pp);
+		// optimize for more common case
+		ptrdiff_t length = buffer_end(pp) - buffer_begin(pp);
+		if (LIKELY(length >= 2 && buffer_begin(pp)[0] == '\n' &&
+		           buffer_begin(pp)[1] > ' ')) {
+			pp->read_ptr++; // nasty hack
+			pp->line_number += 1;
+		} else {
+			check = skip_whitespace(pp);
+			if (UNLIKELY(check == E_EOF)) break;
+			PF_FAIL_BUBBLE_CHECK(pp, check);
+		}
 	}
 
 	if (dynstr_len(&sequence) == 0)
@@ -543,6 +465,7 @@ int pfasta_read_sequence(struct pfasta_parser *pp, struct pfasta_record *pr) {
 
 	pr->sequence_length = dynstr_len(&sequence);
 	pr->sequence = dynstr_move(&sequence);
+	pp->errstr = NULL; // reset error
 
 cleanup:
 	if (return_code) {
@@ -564,6 +487,45 @@ void pfasta_free(struct pfasta_parser *pp) {
 	free(pp->buffer);
 	pp->buffer = NULL;
 }
+
+#ifdef FUZZ
+
+// #include <sys/memfd.h>
+int memfd_create(const char *name, unsigned int flags);
+
+int LLVMFuzzerTestOneInput(const uint8_t *Data, size_t Size) {
+	int filedes[2];
+	int check = pipe(filedes);
+	if (check == -1) err(errno, "pipe");
+
+	ssize_t bytes = write(filedes[1], Data, Size);
+	if (bytes == -1) err(errno, "write failed");
+	close(filedes[1]);
+
+	struct pfasta_parser pp = pfasta_init(filedes[0]);
+	// if (pp.errstr) warn("%s", pp.errstr);
+
+	while (!pp.done) {
+		struct pfasta_record pr = pfasta_read(&pp);
+		// if (pp.errstr) warn("%s", pp.errstr);
+
+		// if (pr.comment) {
+		// 	printf(">%s %s\n%zu\n", pr.name, pr.comment, pr.sequence_length);
+		// } else {
+		// 	printf(">%s\n%zu\n", pr.name, pr.sequence_length);
+		// }
+		pfasta_record_free(&pr);
+	}
+
+	pfasta_free(&pp);
+	close(filedes[0]);
+
+	// close(fd);
+
+	return 0; // Non-zero return values are reserved for future use.
+}
+
+#else
 
 int main(int argc, char *argv[]) {
 	argc--, argv++;
@@ -590,6 +552,8 @@ int main(int argc, char *argv[]) {
 		close(file_descriptor);
 	}
 }
+
+#endif
 
 /** @brief Creates a new string that can grow dynamically.
  *
