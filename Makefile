@@ -95,7 +95,7 @@ PASS= $(wildcard test/pass*)
 .PHONY: $(PASS) $(XFAIL)
 
 check: sim $(VALIDATE) $(PASS) $(XFAIL)
-	@ for LENGTH in 1 2 3 10 100 1000 10000; do \
+	@ for LENGTH in 1 2 3 10 100 1000 10000 16383 16384 16385; do \
 		echo -n "testing with generated sequence of length $${LENGTH} … "; \
 		(./sim -l "$${LENGTH}" | $(VALIDATE) 2> $(LOGFILE) ) || \
 		(echo -e " Unexpected error: $@\n See $(LOGFILE) for details." && exit 1); \
