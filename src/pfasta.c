@@ -107,6 +107,11 @@ static inline int buffer_is_eof(const struct pfasta_parser *pp);
 static inline int buffer_peek(struct pfasta_parser *pp);
 static inline int buffer_read(struct pfasta_parser *pp);
 
+typedef struct dynstr {
+	char *str;
+	size_t capacity, count;
+} dynstr;
+
 static inline char *dynstr_move(dynstr *ds);
 static inline int dynstr_init(dynstr *ds, struct pfasta_parser *pp);
 static inline size_t dynstr_len(const dynstr *ds);
