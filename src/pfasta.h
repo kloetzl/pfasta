@@ -18,6 +18,10 @@
 #ifndef PFASTA_H
 #define PFASTA_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <stddef.h>
 
 struct pfasta_record {
@@ -41,6 +45,10 @@ struct pfasta_record pfasta_read(struct pfasta_parser *pp);
 
 #ifdef __STDC_NO_THREADS__
 #define PFASTA_NO_THREADS
+#endif
+
+#ifdef __cplusplus
+}
 #endif
 
 #endif /* PFASTA_H */
