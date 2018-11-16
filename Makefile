@@ -85,8 +85,8 @@ asan: CFLAGS= -W -Wall -O1 -g -ggdb -std=gnu99 -fsanitize=address
 asan: CPPFLAGS= -I src
 asan: all
 
-fuzzer: test/fuzz.cxx asan
-	clang++ -fsanitize=address -fsanitize-coverage=edge test/fuzz.cxx Fuzzer*.o src/pfasta.o -I src -o $@
+fuzzer: test/fuzz.c src/pfasta.c
+	clang -fsanitize=fuzzer -I src -o $@ $^
 
 
 XFAIL= $(wildcard test/xfail*)
