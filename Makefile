@@ -1,9 +1,9 @@
 VERSION=$(shell git describe)
 
 SONAME=libpfasta.so.12
-CFLAGS?= -O3 -g -std=gnu11 -ggdb -fPIC
+CFLAGS?= -O2 -g -std=gnu11 -ggdb -fPIC -finline-functions
 CPPFLAGS?= -Wall -Wextra -D_FORTIFY_SOURCE=2
-CPPFLAGS+= -Isrc -DVERSION=$(VERSION) -D_GNU_SOURCE
+CPPFLAGS+= -Isrc -DVERSION=$(VERSION) -D_GNU_SOURCE -DNDEBUG
 LIBS+=-lm
 PREFIX?="/usr"
 BINDIR?=$(PREFIX)/bin
@@ -17,7 +17,7 @@ CPPFLAGS+=-isystem $(INCLUDEDIR)/bsd -DLIBBSD_OVERLAY
 LIBS+=-lbsd
 endif
 
-TOOLS= acgt aln2dist aln2maf cchar concat format gc_content revcomp shuffle sim split validate #n50
+TOOLS= acgt aln2dist aln2maf cchar concat format gc_content revcomp shuffle sim split validate
 LOGFILE= test.log
 
 .PHONY: all clean check dist distcheck clang-format install install-lib install-tools
@@ -27,7 +27,6 @@ sim: tools/pcg_basic.o tools/sim.o
 
 $(TOOLS): %: src/pfasta.o tools/common.o tools/%.o
 	$(CC) $(CFLAGS) -o $@ $^ $(LIBS)
-
 
 clang-format:
 	clang-format -i tools/*.c src/*.c src/*.h
@@ -66,7 +65,7 @@ $(TARBALL):
 	mkdir -p "$(PROJECT_VERSION)"/{src,test,tools}
 	cp Makefile LICENSE README.md pfasta "$(PROJECT_VERSION)"
 	cp src/*.c src/*.h "$(PROJECT_VERSION)/src"
-	cp test/*.cxx test/*.fa "$(PROJECT_VERSION)/test"
+	cp test/*.c test/*.fa "$(PROJECT_VERSION)/test"
 	cp tools/*.c tools/*.h "$(PROJECT_VERSION)/tools"
 	tar -ca -f $@ $(PROJECT_VERSION)
 	rm -rf $(PROJECT_VERSION)
@@ -76,14 +75,6 @@ clean:
 	rm -f src/*.o tools/*.o test/*.o *.o $(LOGFILE)
 	rm -f *.tar.gz
 	rm -f libpfasta.*
-
-
-
-.PHONY: asan
-asan: CC=clang
-asan: CFLAGS= -W -Wall -O1 -g -ggdb -std=gnu99 -fsanitize=address
-asan: CPPFLAGS= -I src
-asan: all
 
 fuzzer: test/fuzz.c src/pfasta.c
 	clang -fsanitize=fuzzer -I src -o $@ $^
