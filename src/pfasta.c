@@ -99,21 +99,22 @@ int pfasta_read_sequence(struct pfasta_parser *pp, struct pfasta_record *pr);
 void pfasta_record_free(struct pfasta_record *pr);
 void pfasta_free(struct pfasta_parser *pp);
 
-char *buffer_begin(struct pfasta_parser *pp);
-int buffer_advance(struct pfasta_parser *pp, size_t steps);
-char *buffer_end(struct pfasta_parser *pp);
-int buffer_is_eof(const struct pfasta_parser *pp);
-int buffer_is_empty(const struct pfasta_parser *pp);
-int buffer_read(struct pfasta_parser *pp);
+static inline char *buffer_begin(struct pfasta_parser *pp);
+static inline char *buffer_end(struct pfasta_parser *pp);
+static inline int buffer_advance(struct pfasta_parser *pp, size_t steps);
+static inline int buffer_is_empty(const struct pfasta_parser *pp);
+static inline int buffer_is_eof(const struct pfasta_parser *pp);
+static inline int buffer_peek(struct pfasta_parser *pp);
+static inline int buffer_read(struct pfasta_parser *pp);
 
-static inline int dynstr_init(dynstr *ds, struct pfasta_parser *pp);
-static inline void dynstr_free(dynstr *ds);
 static inline char *dynstr_move(dynstr *ds);
+static inline int dynstr_init(dynstr *ds, struct pfasta_parser *pp);
 static inline size_t dynstr_len(const dynstr *ds);
+static inline void dynstr_free(dynstr *ds);
 static inline int dynstr_append(dynstr *ds, const char *str, size_t length,
                                 struct pfasta_parser *pp);
 
-int my_isspace(int c) {
+static inline int my_isspace(int c) {
 	// ascii whitespace
 	return (c >= '\t' && c <= '\r') || (c == ' ');
 }
