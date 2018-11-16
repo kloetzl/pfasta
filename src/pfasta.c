@@ -96,8 +96,6 @@ enum { NO_ERROR, E_EOF, E_ERROR, E_ERRNO, E_BUBBLE, E_STR, E_STR_CONST };
 int pfasta_read_name(struct pfasta_parser *pp, struct pfasta_record *pr);
 int pfasta_read_comment(struct pfasta_parser *pp, struct pfasta_record *pr);
 int pfasta_read_sequence(struct pfasta_parser *pp, struct pfasta_record *pr);
-void pfasta_record_free(struct pfasta_record *pr);
-void pfasta_free(struct pfasta_parser *pp);
 
 static inline char *buffer_begin(struct pfasta_parser *pp);
 static inline char *buffer_end(struct pfasta_parser *pp);
