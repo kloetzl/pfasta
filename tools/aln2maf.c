@@ -9,45 +9,44 @@
 
 #include "pfasta.h"
 
-void usage(int exit_code);
-void process(const char *file_name);
-size_t nongaps(const char *str, size_t length);
-
 struct seq_vector {
 	struct pfasta_record *data;
 	size_t size;
 	size_t capacity;
-} sv;
+};
 
-void sv_init() {
-	sv.data = malloc(4 * sizeof(struct pfasta_record));
-	sv.size = 0;
-	sv.capacity = 4;
-	if (!sv.data) err(errno, "malloc failed");
+void sv_init(struct seq_vector *sv) {
+	sv->data = malloc(4 * sizeof(struct pfasta_record));
+	sv->size = 0;
+	sv->capacity = 4;
+	if (!sv->data) err(errno, "malloc failed");
 }
 
-void sv_emplace(struct pfasta_record ps) {
-	if (sv.size < sv.capacity) {
-		sv.data[sv.size++] = ps;
+void sv_emplace(struct seq_vector *sv, struct pfasta_record ps) {
+	if (sv->size < sv->capacity) {
+		sv->data[sv->size++] = ps;
 	} else {
-		sv.data = reallocarray(sv.data, sv.capacity / 2,
-		                       3 * sizeof(struct pfasta_record));
-		if (!sv.data) err(errno, "realloc failed");
+		sv->data = reallocarray(sv->data, sv->capacity / 2,
+		                        3 * sizeof(struct pfasta_record));
+		if (!sv->data) err(errno, "realloc failed");
 		// reallocarray would return NULL, if mult would overflow
-		sv.capacity = (sv.capacity / 2) * 3;
-		sv.data[sv.size++] = ps;
+		sv->capacity = (sv->capacity / 2) * 3;
+		sv->data[sv->size++] = ps;
 	}
 }
 
-void sv_free() {
-	for (size_t i = 0; i < sv.size; i++) {
-		pfasta_record_free(&sv.data[i]);
+void sv_free(struct seq_vector *sv) {
+	for (size_t i = 0; i < sv->size; i++) {
+		pfasta_record_free(&sv->data[i]);
 	}
-	free(sv.data);
+	free(sv->data);
 }
+
+void usage(int exit_code);
+void process(const char *file_name, struct seq_vector *sv);
+size_t nongaps(const char *str, size_t length);
 
 int main(int argc, char *argv[]) {
-	sv_init();
 
 	int c = getopt(argc, argv, "h");
 	if (c != -1) {
@@ -55,39 +54,47 @@ int main(int argc, char *argv[]) {
 	}
 
 	argc -= optind, argv += optind;
+
+	struct seq_vector blocks[argc + 1];
+	size_t num_blocks = argc;
+
 	if (argc == 0) {
 		if (!isatty(STDIN_FILENO)) {
-			process("-");
+			process("-", &blocks[0]);
+			num_blocks = 1;
 		} else {
 			usage(EXIT_FAILURE);
 		}
 	}
 
+	size_t total_length = 0;
 	for (int i = 0; i < argc; i++) {
-		process(argv[i]);
+		process(argv[i], &blocks[i]);
+		total_length += blocks[i].data[0].sequence_length;
 	}
 
-	// check lengths
-	if (sv.size < 2) errx(1, "less than two sequences read");
-	size_t length = strlen(sv.data[0].sequence);
-	for (size_t i = 1; i < sv.size; i++) {
-		if (strlen(sv.data[i].sequence) != length) {
-			errx(1, "alignments of unequal length");
+	size_t starting_pos = 0;
+
+	printf("##maf version=1 program=aln2maf\n");
+	for (size_t j = 0; j < num_blocks; j++) {
+		struct seq_vector *sv = &blocks[j];
+
+		printf("\na\n");
+		for (size_t i = 0; i < sv->size; ++i) {
+			struct pfasta_record pr = sv->data[i];
+			size_t ng = nongaps(pr.sequence, pr.sequence_length);
+			printf("s %s %zu %zu %c %zu %s\n", pr.name, starting_pos, ng, '+',
+			       total_length, pr.sequence);
 		}
+
+		starting_pos += sv->data[0].sequence_length;
+		sv_free(sv);
 	}
 
-	printf("##maf version=1 program=aln2maf\n\na\n");
-	for (size_t i = 0; i < sv.size; ++i) {
-		size_t ng = nongaps(sv.data[i].sequence, length);
-		printf("s %s %i %zu %c %zu %s\n", sv.data[i].name, 0, ng, '+', length,
-		       sv.data[i].sequence);
-	}
-
-	sv_free();
 	return EXIT_SUCCESS;
 }
 
-void process(const char *file_name) {
+void process(const char *file_name, struct seq_vector *sv) {
 	int file_descriptor =
 	    strcmp(file_name, "-") == 0 ? STDIN_FILENO : open(file_name, O_RDONLY);
 	if (file_descriptor < 0) err(1, "%s", file_name);
@@ -95,12 +102,21 @@ void process(const char *file_name) {
 	struct pfasta_parser pp = pfasta_init(file_descriptor);
 	if (pp.errstr) errx(1, "%s: %s", file_name, pp.errstr);
 
+	sv_init(sv);
+
+	ssize_t length = -1;
 	while (!pp.done) {
 		struct pfasta_record pr = pfasta_read(&pp);
 		if (pp.errstr) errx(2, "%s: %s", file_name, pp.errstr);
+		if (length < 0) length = pr.sequence_length;
+		if (length != pr.sequence_length) {
+			errx(3, "File %s contains sequences of unequal length", file_name);
+		}
 
-		sv_emplace(pr);
+		sv_emplace(sv, pr);
 	}
+
+	if (sv->size < 2) errx(1, "%s: less than two sequences read", file_name);
 
 	pfasta_free(&pp);
 	close(file_descriptor);
