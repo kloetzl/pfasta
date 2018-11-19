@@ -20,7 +20,7 @@ shift
 ARGS=$*
 
 if [ -x "${TOOL_PATH}/${TOOL}" ]; then
-    exec "${TOOL_PATH}/${TOOL}" "${ARGS}"
+    exec "${TOOL_PATH}/${TOOL}" ${ARGS}
 else
     echo "Usage: ${TOOL} does not exist in pfasta"
     echo "  Existing tools are:"
