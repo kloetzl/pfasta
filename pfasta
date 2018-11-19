@@ -2,10 +2,16 @@
 
 TOOL_PATH="/usr/lib/pfasta/bin"
 
+if [ ! -d "$TOOL_PATH" ]; then
+	SCRIPT=$(readlink -f "$0")
+	TOOL_PATH=$(dirname "$SCRIPT")
+fi
+
 if [ $# -lt 1 ] ; then
     echo "Usage: $0 <tool>" 1>&2
     echo "  Existing tools are:"
-    ls ${TOOL_PATH}
+    find "${TOOL_PATH}" -maxdepth 1 -executable -type f -printf "%P\n" | \
+        (cd "${TOOL_PATH}" && xargs ls)
     exit 1
 fi
 
@@ -13,11 +19,11 @@ TOOL=$1
 shift
 ARGS=$*
 
-if [ -x ${TOOL_PATH}/${TOOL} ]; then
-    exec ${TOOL_PATH}/${TOOL} ${ARGS}
+if [ -x "${TOOL_PATH}/${TOOL}" ]; then
+    exec "${TOOL_PATH}/${TOOL}" "${ARGS}"
 else
     echo "Usage: ${TOOL} does not exist in pfasta"
     echo "  Existing tools are:"
-    ls ${TOOL_PATH}
+    ls "${TOOL_PATH}"
     exit 1
 fi
