@@ -49,30 +49,26 @@ void process(const char *file_name) {
 	    strcmp(file_name, "-") == 0 ? STDIN_FILENO : open(file_name, O_RDONLY);
 	if (file_descriptor < 0) err(1, "%s", file_name);
 
-	pfasta_file pf;
-	int l = pfasta_parse(&pf, file_descriptor);
-	if (l != 0) {
-		errx(1, "%s: %s", file_name, pfasta_strerror(&pf));
-	}
-
 	size_t *array = reallocarray(NULL, 61, sizeof(*array));
 	size_t capacity = 61;
 	size_t used = 0;
 
-	pfasta_seq ps;
-	while ((l = pfasta_read(&pf, &ps)) == 0) {
+	struct pfasta_parser pp = pfasta_init(file_descriptor);
+	if (pp.errstr) errx(1, "%s: %s", file_name, pp.errstr);
+
+	while (!pp.done) {
+		struct pfasta_record pr = pfasta_read(&pp);
+		if (pp.errstr) errx(2, "%s: %s", file_name, pp.errstr);
+
 		if (used >= capacity) {
 			size_t *neu = reallocarray(array, capacity / 2, sizeof(*array) * 3);
 			if (!neu) err(errno, "oom");
 			array = neu;
 			capacity = (capacity / 2) * 3;
 		}
-		array[used++] = strlen(ps.seq);
-		pfasta_seq_free(&ps);
-	}
 
-	if (l < 0) {
-		errx(1, "%s: %s", file_name, pfasta_strerror(&pf));
+		array[used++] = pr.sequence_length;
+		pfasta_record_free(&pr);
 	}
 
 	qsort(array, used, sizeof(*array), size_t_cmp);
@@ -92,7 +88,7 @@ void process(const char *file_name) {
 	printf("%zu\n", array[i - 1]);
 
 	free(array);
-	pfasta_free(&pf);
+	pfasta_free(&pp);
 	close(file_descriptor);
 }
 

@@ -16,43 +16,10 @@
 #define NORMAL "\033[0m"
 #define GREY "\033[90m"
 
-void count(const pfasta_seq *);
-void print_counts(const char *name, const size_t *counts);
+void count(const struct pfasta_record *);
+void print_counts(const char *name, const char *comment, const size_t *counts);
 void usage(int exit_code);
 void process(const char *file_name);
-
-struct seq_vector {
-	pfasta_seq *data;
-	size_t size;
-	size_t capacity;
-} sv;
-
-void sv_init() {
-	sv.data = malloc(4 * sizeof(pfasta_seq));
-	sv.size = 0;
-	sv.capacity = 4;
-	if (!sv.data) err(errno, "malloc failed");
-}
-
-void sv_emplace(pfasta_seq ps) {
-	if (sv.size < sv.capacity) {
-		sv.data[sv.size++] = ps;
-	} else {
-		sv.data =
-		    reallocarray(sv.data, sv.capacity / 2, 3 * sizeof(pfasta_seq));
-		if (!sv.data) err(errno, "realloc failed");
-		// reallocarray would return NULL, if mult would overflow
-		sv.capacity = (sv.capacity / 2) * 3;
-		sv.data[sv.size++] = ps;
-	}
-}
-
-void sv_free() {
-	for (size_t i = 0; i < sv.size; i++) {
-		pfasta_seq_free(&sv.data[i]);
-	}
-	free(sv.data);
-}
 
 // const int CHARS = 128;
 #define CHARS 128
@@ -63,11 +30,19 @@ enum { NONE = 0, SPLIT = 1, CASE_INSENSITIVE = 2 } FLAGS = 0;
 
 int main(int argc, char **argv) {
 	int c;
-	while ((c = getopt(argc, argv, "h")) != -1) {
-		if (c == 'h')
+	while ((c = getopt(argc, argv, "ihs")) != -1) {
+		switch (c) {
+		case 'i':
+			FLAGS |= CASE_INSENSITIVE;
+			break;
+		case 'h':
 			usage(EXIT_SUCCESS);
-		else
+		case 's':
+			FLAGS |= SPLIT;
+			break;
+		default:
 			usage(EXIT_FAILURE);
+		}
 	}
 
 	argc -= optind, argv += optind;
@@ -97,72 +72,36 @@ void process(const char *file_name) {
 	    strcmp(file_name, "-") == 0 ? STDIN_FILENO : open(file_name, O_RDONLY);
 	if (file_descriptor < 0) err(1, "%s", file_name);
 
-	pfasta_file pf;
-	int l = pfasta_parse(&pf, file_descriptor);
-	if (l != 0) {
-		errx(1, "%s: %s", file_name, pfasta_strerror(&pf));
-	}
+	struct pfasta_parser pp = pfasta_init(file_descriptor);
+	if (pp.errstr) errx(1, "%s: %s", file_name, pp.errstr);
 
-	pfasta_seq ps;
-	while ((l = pfasta_read(&pf, &ps)) == 0) {
-		count(&ps);
+	while (!pp.done) {
+		struct pfasta_record pr = pfasta_read(&pp);
+		if (pp.errstr) errx(2, "%s: %s", file_name, pp.errstr);
 
-		size_t local_length = 0;
-		size_t local_max = 0;
+		count(&pr);
+		if (FLAGS & SPLIT) {
+			print_counts(pr.name, pr.comment, counts_local);
+			bzero(counts_local, sizeof(counts_local));
+		}
+		pfasta_record_free(&pr);
 		for (size_t i = 0; i < CHARS; i++) {
-			local_length += counts_local[i];
 			counts_total[i] += counts_local[i];
-			if (counts_local[i] > local_max) {
-				local_max = counts_local[i];
-			}
 		}
-
-		double scale = local_length / (double)local_max;
-
-		printf("\n");
-		printf(">" BOLD "%s\n" NORMAL, ps.name);
-		if (ps.comment) printf(FAINT " %s\n" NORMAL, ps.comment);
-
-		printf("\n");
-
-		for (size_t i = 0; i < CHARS; i++) {
-			if (counts_local[i]) {
-				size_t block_bytes = strlen("▉"); // length of one block
-				double rel_count = (double)counts_local[i] / local_length;
-				double count_scaled = scale * rel_count;
-				size_t full_blocks = (size_t)(count_scaled * 8);
-				size_t part_blocks = (size_t)(count_scaled * 8 * 8) & 7;
-				size_t offset = full_blocks * block_bytes;
-
-				char blocks[block_bytes * 10];
-				memcpy(blocks, all_black, block_bytes * 8 + 1);
-				size_t offset_inner = 7 - part_blocks;
-				// printf("%zu %zu %zu\n", offset, part_blocks, offset_inner);
-				memcpy(blocks + offset, blocks_rev + block_bytes * offset_inner,
-				       block_bytes);
-				blocks[offset + block_bytes] = '\0';
-
-				printf(" %c %10zu  %5.1lf%% " GREY "%s" NORMAL "\n", (char)i,
-				       counts_local[i], rel_count * 100, blocks);
-			}
-		}
-		printf(GREY " Σ %10zu  100.0%%\n" NORMAL, local_length);
-
-		printf("\n");
-		pfasta_seq_free(&ps);
 	}
 
-	if (l < 0) {
-		errx(1, "%s: %s", file_name, pfasta_strerror(&pf));
+	if (!(FLAGS & SPLIT)) {
+		print_counts(file_name, NULL, counts_total);
+		bzero(counts_total, sizeof(counts_total));
 	}
 
-	pfasta_free(&pf);
+	pfasta_free(&pp);
 	close(file_descriptor);
 }
 
-void count(const pfasta_seq *ps) {
+void count(const struct pfasta_record *pr) {
 	bzero(counts_local, sizeof(counts_local));
-	const char *ptr = ps->seq;
+	const char *ptr = pr->sequence;
 
 	while (*ptr) {
 		unsigned char c = *ptr;
@@ -176,17 +115,45 @@ void count(const pfasta_seq *ps) {
 	}
 }
 
-void print_counts(const char *name, const size_t *counts) {
-	printf(">%s\n", name);
-
-	size_t sum = 0;
-	for (int i = 1; i < CHARS; ++i) {
-		if (counts[i]) {
-			printf("%c:\t%8zu\n", i, counts[i]);
-			sum += counts[i];
+void print_counts(const char *name, const char *comment, const size_t *counts) {
+	size_t local_length = 0;
+	size_t local_max = 0;
+	for (size_t i = 0; i < CHARS; i++) {
+		local_length += counts[i];
+		if (counts[i] > local_max) {
+			local_max = counts[i];
 		}
 	}
-	printf("# sum:\t%8zu\n", sum);
+
+	double scale = local_length / (double)local_max;
+
+	printf("\n>" BOLD "%s\n" NORMAL, name);
+	if (comment) printf(FAINT " %s\n" NORMAL, comment);
+
+	printf("\n");
+
+	for (size_t i = 0; i < CHARS; i++) {
+		if (counts[i]) {
+			size_t block_bytes = strlen("▉"); // length of one block
+			double rel_count = (double)counts[i] / local_length;
+			double count_scaled = scale * rel_count;
+			size_t full_blocks = (size_t)(count_scaled * 8);
+			size_t part_blocks = (size_t)(count_scaled * 8 * 8) & 7;
+			size_t offset = full_blocks * block_bytes;
+
+			char blocks[block_bytes * 10];
+			memcpy(blocks, all_black, block_bytes * 8 + 1);
+			size_t offset_inner = 7 - part_blocks;
+			memcpy(blocks + offset, blocks_rev + block_bytes * offset_inner,
+			       block_bytes);
+			blocks[offset + block_bytes] = '\0';
+
+			printf(" %c %10zu  %5.1lf%% " GREY "%s" NORMAL "\n", (char)i,
+			       counts[i], rel_count * 100, blocks);
+		}
+	}
+
+	printf(GREY " Σ %10zu  100.0%%\n\n" NORMAL, local_length);
 }
 
 void usage(int exit_code) {

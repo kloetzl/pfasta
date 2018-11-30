@@ -17,7 +17,7 @@ CPPFLAGS+=-isystem $(INCLUDEDIR)/bsd -DLIBBSD_OVERLAY
 LIBS+=-lbsd
 endif
 
-TOOLS= acgt aln2dist aln2maf cchar concat format gc_content revcomp shuffle sim split validate
+TOOLS= acgt aln2dist aln2maf cchar concat fancy_info format gc_content n50 revcomp shuffle sim split validate
 LOGFILE= test.log
 
 .PHONY: all clean check dist distcheck clang-format install install-lib install-tools

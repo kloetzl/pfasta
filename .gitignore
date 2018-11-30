@@ -32,10 +32,12 @@ aln2dist
 aln2maf
 cchar
 concat
+fancy_info
 format
 fuzzer
 gc_content
 genFasta
+n50
 noop
 revcomp
 shuffle
