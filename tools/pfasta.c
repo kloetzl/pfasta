@@ -149,10 +149,12 @@ void usage(int exit_code) {
 }
 
 void version() {
-	static const char str[] = {"pfasta %s\n"
-	                           "Copyright (c) 2015 - 2017, Fabian Klötzl "
-	                           "<fabian-pfasta@kloetzl.info>\n"
-	                           "ISC License\n"};
+	static const char str[] = {
+	    "pfasta %s\n"
+	    "Copyright (c) 2015 - 2017, Fabian Klötzl "
+	    "<fabian-pfasta@kloetzl.info>\n"
+	    "ISC License\n" //
+	};
 
 	printf(str, VERSION);
 	exit(EXIT_SUCCESS);
