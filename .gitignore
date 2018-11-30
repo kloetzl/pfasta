@@ -39,6 +39,7 @@ gc_content
 genFasta
 n50
 noop
+pfasta
 revcomp
 shuffle
 sim

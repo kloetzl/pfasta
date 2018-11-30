@@ -1,23 +1,25 @@
 VERSION=$(shell git describe)
 
-SONAME=libpfasta.so.12
-CFLAGS?= -O2 -g -std=gnu11 -ggdb -fPIC -finline-functions
-CPPFLAGS?= -Wall -Wextra -D_FORTIFY_SOURCE=2
-CPPFLAGS+= -Isrc -DVERSION=$(VERSION) -D_GNU_SOURCE -DNDEBUG
-LIBS+=-lm
-PREFIX?="/usr"
+PREFIX?=/usr
 BINDIR?=$(PREFIX)/bin
 LIBDIR?=$(PREFIX)/lib
 INCLUDEDIR?=$(PREFIX)/include
+TOOLDIR?=$(LIBDIR)/pfasta/bin
 VALIDATE?=./validate
 FORMAT?=./format
+
+SONAME=libpfasta.so.12
+CFLAGS?= -O2 -g -std=gnu11 -ggdb -fPIC -finline-functions
+CPPFLAGS?= -Wall -Wextra -D_FORTIFY_SOURCE=2
+CPPFLAGS+= -Isrc -DVERSION="\"$(VERSION)\"" -D_GNU_SOURCE -DNDEBUG -DDEFAULT_PATH="\"$(TOOLDIR)\""
+LIBS+=-lm
 
 ifeq "$(WITH_LIBBSD)" "1"
 CPPFLAGS+=-isystem $(INCLUDEDIR)/bsd -DLIBBSD_OVERLAY
 LIBS+=-lbsd
 endif
 
-TOOLS= acgt aln2dist aln2maf cchar concat fancy_info format gc_content n50 revcomp shuffle sim split validate
+TOOLS= acgt aln2dist aln2maf cchar concat fancy_info format gc_content n50 revcomp shuffle sim split validate pfasta
 LOGFILE= test.log
 
 .PHONY: all clean check dist distcheck clang-format install install-lib install-tools
@@ -44,10 +46,8 @@ distcheck: dist
 install: install-tools install-lib
 
 install-tools: $(TOOLS)
-	mkdir -p "${BINDIR}"
-	install pfasta "${BINDIR}"
-	mkdir -p "${LIBDIR}/pfasta/bin"
-	install -t "${LIBDIR}/pfasta/bin" $(TOOLS)
+	install -D -t "${BINDIR}" pfasta
+	install -D -t "${TOOLDIR}" $(TOOLS)
 
 install-lib: $(SONAME)
 	install src/pfasta.h $(INCLUDEDIR)
