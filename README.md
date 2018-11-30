@@ -20,15 +20,17 @@ After compilation the main directory will contain a set of tools. They are desig
  * `aln2maf`: Convert an alignment to MAF.
  * `cchar`: Count the number of nucleotides.
  * `concat`: Concatenate sequences.
+ * `fancy_info`: Print a fancy report.
  * `format`: Format sequences.
  * `gc_content`: Determine the GC content.
+ * `n50`: Compute the N50.
  * `revcomp`: Compute the reverse complement.
  * `shuffle`: Shuffle a set of sequences.
  * `sim`: Simulate a set of genetic sequences.
  * `split`: Split a FASTA file into multiple files on a sequence basis.
  * `validate`: Check if a file conforms to the grammar given below.
 
-Therein is also a wrapper script `pfasta` which bundles all of the tools at installation. Use the following command
+Therein is also a wrapper program `pfasta` which bundles all of the tools at installation. Use the following command
 
     pfasta format file.fa
 
@@ -44,64 +46,60 @@ can do wrong when trying to parse a FASTA file in C. `pfasta` was designed with 
 
 A FASTA file contains one or more sequences. Each sequence consists of a header line with a name and an optional comment. Then follow multiple lines with the data. Here is a regex explaining what sequences are considered valid.
 
-    >[:graph:]+([^\n]*)\n
-    ([:graph:]+\n)+
-    \n*
+    >[^[:space:]]+([^\n]*)\n
+    ([^[:space:]]*[[:space:]]*)+
 
 `[:graph:]` refers to the character class defined by the respective C function `isgraph(3)`.
 
 ### API Usage
 
-Copy the `pfasta.h` and `pfasta.c` files into your project. You then have access
-to a number of simple functions to setup a parser and use it on files. For a complete example on their usage see [tools/gc_content.c](tools/gc_content.c).
+To use the parser in your own tools, install the library and `#include<pfasta.h>`. You then have access to a number of simple functions to setup a parser and use it on files. For a complete example on their usage see [tools/gc_content.c](tools/gc_content.c). Don't forget to link with `-lpfasta`.
 
 ```c
-typedef struct pfasta_file {
+struct pfasta_parser {
 	/* internal data */
-} pfasta_file;
+    int done;
+    const char *errstr;
+};
 ```
 
 This structure holds a number of members to represent the state of the FASTA parser. Please make sure, that it is properly initialized before usage. Always free this structure when the parser is done.
 
-
 ```c
-typedef struct pfasta_seq {
-	char *name, *comment, *seq;
-} pfasta_seq;
+struct pfasta_record {
+	char *name, *comment, *sequence;
+    size_t name_length, comment_length, sequence_length;
+};
 ```
 
-There is no magic to this structure. Its just a container of three strings. Feel free to duplicate or move them. But don't forget to free the structure after usage!
+There is no magic to this structure. Its just a container of three strings. Feel free to duplicate or move them. But don't forget to free the data after usage!
 
 ```c
-int pfasta_parse( pfasta_file *, int);
+struct pfasta_parser pfasta_parse(int);
 ```
 
-This function initializes a pfasta_file struct with a parser bound to a specific file descriptor. Iff successful, 0 is returned and the first parameter is properly initialized. On error a nonzero value is returned. A human-readable description of the problem can be obtained via `pfasta_sterror()`. In both cases the parser should be freed after usage.
+This function initializes a `pfasta_parser` struct with a parser bound to a specific file descriptor. Iff an error occurred `errstr` is set to contain a suitable message. Otherwise you can read data from it as long as `done` isn't set. The parser should be freed after usage.
 
 Please note that the user is responsible for opening the file descriptor as readable and closing after usage.
 
 ```c
-int pfasta_read( pfasta_file *, pfasta_seq *);
+struct pfasta_record pfasta_read( struct pfasta_parser *);
 ```
 
-Using a properly initialized parser, this function can read FASTA sequences. These are stored in the simple structure passed via the second parameter. A nonzero return value indicates an error (`1` means `EOF`). In that case both the sequence and the parser are left in an undetermined state and should no longer be used, but freed.
+Using a properly initialized parser, this function can read FASTA sequences. These are stored in the simple structure and returned. On error, the `errstr` property of the parser is set.
 
 ```c
-const char *pfasta_strerror( const pfasta_file *);
+void pfasta_free( struct pfasta_parser *);
+void pfasta_record_free( struct pfasta_record *);
 ```
 
-Like `strerror(3)` this functions returns a human readable description to the occurred error. This includes low-level IO errors as well as notifications about broken FASTA files.
+These two functions free the resources allocated by the structures above.
 
-```c
-void pfasta_free( pfasta_file *);
-void pfasta_seq_free( pfasta_seq *);
-```
-
-These two functions free the resources allocated by the structures above. After freeing the structure itself can be reused.
+If `PFASTA_NO_THREADS` is defined, the parser is not fully thread safe.
 
 ## Releases
 
-The tool set is not released as tarballs. Instead, versioning is done via git tags. To integrate the library in your project, just copying the `pfasta.*` files is the preferred way, at the moment.
+The tool set is not released as tarballs. Instead, versioning is done via git tags.
 
 ## License
 
