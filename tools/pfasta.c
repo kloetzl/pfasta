@@ -20,7 +20,7 @@ static const struct description descriptions[] = {
     {"aln2dist", "Compute sequence distances from an alignment."},
     {"aln2maf", "Convert an alignment to the Multiple Alignment Format (MAF)."},
     {"cchar", "Count the residues."},
-    {"concat", "Concat multiple Fasta files into one sequence."},
+    {"concat", "Concatenate multiple Fasta files into one sequence."},
     {"fancy_info", "Print a fancy report."},
     {"format", "Format the input sequence."},
     {"gc_content", "Compute the GC content of each sequence."},
@@ -142,7 +142,7 @@ void usage(int exit_code) {
 	    "  -l         List available tools\n"
 	    "  -v         Output version information\n"
 	    "  -V         Be verbose\n"
-	    "\nThe defaul tool path is " DEFAULT_PATH ".\n"};
+	    "\nThe default tool path is " DEFAULT_PATH ".\n"};
 
 	fprintf(exit_code == EXIT_SUCCESS ? stdout : stderr, str);
 	exit(exit_code);
