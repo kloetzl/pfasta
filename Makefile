@@ -93,7 +93,7 @@ distcheck: dist
 install: install-tools install-lib install-dev
 
 install-dev:
-	install -D -t "$(INCLUDEDIR)" src/pfasta.h
+	install -D -m0644 -t "$(INCLUDEDIR)" src/pfasta.h
 
 install-lib: $(SONAME)
 	install -D -t "$(LIBDIR)" $(SONAME)
@@ -103,7 +103,7 @@ install-lib: $(SONAME)
 install-tools: $(TOOLS) $(MANS)
 	install -D -t "${BINDIR}" pfasta
 	install -D -t "${TOOLDIR}" $(TOOLS)
-	install -D -t "${MANDIR}/man1" $(MANS)
+	install -D -m0644 -t "${MANDIR}/man1" $(MANS)
 
 uninstall:
 	$(RM) "${BINDIR}/pfasta"
