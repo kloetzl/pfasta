@@ -29,7 +29,7 @@ static const struct description descriptions[] = {
     {"shuffle", "Shuffle a set of sequences."},
     {"sim", "Simulate a set of genomic sequences."},
     {"split", "Split a FASTA file into one per contained sequence."},
-    {"validate", "Verify if the input is a valid FASTA file."},
+    {"validate", "Verify that the input is a valid FASTA file."},
     {0, 0}};
 
 char *tool_is_exec(const char *path, const char *tool);

@@ -51,4 +51,5 @@ validate
 perf.data*
 
 # Project files
+*.1
 pfasta.sublime-*

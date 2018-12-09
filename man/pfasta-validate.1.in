@@ -1,0 +1,21 @@
+.TH PFASTA-VALIDATE "1" "2018-12-04" "VERSION" "pfasta manual"
+.SH NAME
+pfasta-validate \- verify that the input is a valid fasta file
+.SH SYNOPSIS
+.B pfasta validate
+[\fIOPTIONS...\fR] FILES...
+.SH DESCRIPTION
+.TP
+If the input is a valid FASTA file, no ouput is produced; Otherwise, an error message is given. When FILE is \fI-\fR read from standard input.
+.SH OPTIONS
+.TP
+\fB\-h\fR
+Prints the synopsis and an explanation of available options.
+.SH COPYRIGHT
+Copyright \(co 2015 - 2018, Fabian Klötzl
+.br
+ISC License
+.SH BUGS
+.SS Reporting Bugs
+Please report bugs to <fabian-pfasta@kloetzl.info> or at <https://github.com/kloetzl/pfasta>.
+.SS

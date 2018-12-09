@@ -1,0 +1,30 @@
+.TH PFASTA-SPLIT "1" "2018-12-04" "VERSION" "pfasta manual"
+.SH NAME
+pfasta-split \- split a fasta file into one per contained sequence
+.SH SYNOPSIS
+.B pfasta split
+[\fIOPTIONS...\fR] FILES...
+.SH DESCRIPTION
+.TP
+Split a FASTA file into one per contained sequence. The sequence names are used for the new file names. When FILE is \fI-\fR read from standard input.
+.SH OPTIONS
+.TP
+\fB\-h\fR
+Prints the synopsis and an explanation of available options.
+.TP
+\fB\-d\fR DIR
+Set the directory to put new files in.
+.TP
+\fB\-s\fR SUFFIX
+Set the file suffix (default: '.fasta').
+.TP
+\fB\-L\fR NUM
+Set the maximum line length (0 to disable).
+.SH COPYRIGHT
+Copyright \(co 2015 - 2018, Fabian Klötzl
+.br
+ISC License
+.SH BUGS
+.SS Reporting Bugs
+Please report bugs to <fabian-pfasta@kloetzl.info> or at <https://github.com/kloetzl/pfasta>.
+.SS

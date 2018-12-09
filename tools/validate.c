@@ -54,7 +54,7 @@ void process(const char *file_name) {
 void usage(int exit_code) {
 	static const char str[] = {
 	    "Usage: validate [FILE...]\n"
-	    "Verify if the input is a valid FASTA file.\n"
+	    "Verify that the input is a valid FASTA file.\n"
 	    "When FILE is '-' read from standard input.\n\n"
 	    "Options:\n"
 	    "  -h         Display help and exit\n" //

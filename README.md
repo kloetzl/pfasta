@@ -32,7 +32,7 @@ After compilation the main directory will contain a set of tools. They are desig
 
 Therein is also a wrapper program `pfasta` which bundles all of the tools at installation. Use the following command
 
-    pfasta format file.fa
+    pfasta format file.fasta
 
 to format a file.
 

@@ -1,0 +1,74 @@
+.TH PFASTA "1" "2018-12-04" "VERSION" "pfasta manual"
+.SH NAME
+pfasta \- Suite of FASTA tools
+.SH SYNOPSIS
+.B pfasta
+[\fIOPTIONS...\fR] <tool> [OPTIONS...] FILES...
+.SH DESCRIPTION
+.TP
+\fBpfasta\fR is a suite of tools for the manipulation of FASTA files.
+.SH TOOLS
+The following tools are available in this version. In order to access their man page they need to be prefixed, eg. \fBpfasta-acgt\fR.
+.TP
+\fBacgt\fR(1)
+Filter the nucleotides.
+.TP
+\fBaln2dist\fR(1)
+Compute sequence distances from an alignment.
+.TP
+\fBaln2maf\fR(1)
+Convert an alignment to the Multiple Alignment Format (MAF).
+.TP
+\fBcchar\fR(1)
+Count the residues.
+.TP
+\fBconcat\fR(1)
+Concatenate multiple Fasta files into one sequence.
+.TP
+\fBfancy_info\fR(1)
+Print a fancy report.
+.TP
+\fBformat\fR(1)
+Format the input sequence.
+.TP
+\fBgc_content\fR(1)
+Compute the GC content of each sequence.
+.TP
+\fBn50\fR(1)
+Compute the N50.
+.TP
+\fBrevcomp\fR(1)
+Print the reverse complement of each sequence.
+.TP
+\fBshuffle\fR(1)
+Shuffle a set of sequences.
+.TP
+\fBsim\fR(1)
+Simulate a set of genomic sequences.
+.TP
+\fBsplit\fR(1)
+Split a FASTA file into one per contained sequence.
+.TP
+\fBvalidate\fR(1)
+Verify if the input is a valid FASTA file.
+.SH OPTIONS
+.TP
+\fB\-h\fR
+Prints the synopsis and an explanation of available options.
+.TP
+\fB\-l\fR
+List the available tools. 
+.TP
+\fB\-v\fR
+Outputs version and license information.
+.TP
+\fB\-V\fR
+Produce verbose output. Useful for debugging.
+.SH COPYRIGHT
+Copyright \(co 2015 - 2018, Fabian Klötzl
+.br
+ISC License
+.SH BUGS
+.SS Reporting Bugs
+Please report bugs to <fabian-pfasta@kloetzl.info> or at <https://github.com/kloetzl/pfasta>.
+.SS
