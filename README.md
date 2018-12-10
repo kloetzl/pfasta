@@ -11,6 +11,8 @@ On Linux, compilation requires [libbsd](https://libbsd.freedesktop.org/wiki/). I
     make WITH_LIBBSD=1
     sudo make install
 
+To change the installation directory use `make DESTDIR=/usr/local install`.
+
 ## Tool Set
 
 After compilation the main directory will contain a set of tools. They are designed to behave well on the commandline.

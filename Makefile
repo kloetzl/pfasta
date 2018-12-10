@@ -1,12 +1,12 @@
 VERSION=$(shell git describe)
 SOVERSION=12
 
-PREFIX?=/usr
-BINDIR?=$(PREFIX)/bin
-LIBDIR?=$(PREFIX)/lib
-INCLUDEDIR?=$(PREFIX)/include
+DESTDIR?=/usr
+BINDIR?=$(DESTDIR)/bin
+LIBDIR?=$(DESTDIR)/lib
+INCLUDEDIR?=$(DESTDIR)/include
 TOOLDIR?=$(LIBDIR)/pfasta/bin
-MANDIR?=$(PREFIX)/share/man
+MANDIR?=$(DESTDIR)/share/man
 VALIDATE?=./validate
 FORMAT?=./format
 
