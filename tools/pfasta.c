@@ -1,3 +1,4 @@
+#include "pfasta.h"
 #include <err.h>
 #include <errno.h>
 #include <libgen.h>
@@ -153,9 +154,10 @@ void version() {
 	    "pfasta %s\n"
 	    "Copyright (c) 2015 - 2018, Fabian Klötzl "
 	    "<fabian-pfasta@kloetzl.info>\n"
-	    "ISC License\n" //
+	    "ISC License\n\n"
+	    "library version: %s\n" //
 	};
 
-	printf(str, VERSION);
+	printf(str, VERSION, pfasta_version());
 	exit(EXIT_SUCCESS);
 }

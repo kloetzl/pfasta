@@ -42,6 +42,7 @@ void pfasta_record_free(struct pfasta_record *pr);
 void pfasta_free(struct pfasta_parser *pp);
 struct pfasta_parser pfasta_init(int file_descriptor);
 struct pfasta_record pfasta_read(struct pfasta_parser *pp);
+const char *pfasta_version(void);
 
 #ifdef __STDC_NO_THREADS__
 #define PFASTA_NO_THREADS

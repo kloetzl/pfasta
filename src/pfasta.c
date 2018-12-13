@@ -122,6 +122,8 @@ static inline int my_isspace(int c) {
 	return (c >= '\t' && c <= '\r') || (c == ' ');
 }
 
+const char *pfasta_version(void) { return VERSION; }
+
 int buffer_init(struct pfasta_parser *pp) {
 	int return_code = 0;
 
