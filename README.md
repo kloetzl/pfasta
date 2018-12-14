@@ -59,7 +59,7 @@ To use the parser in your own tools, install the library and `#include <pfasta.h
 
 ```c
 struct pfasta_parser {
-	/* internal data */
+    /* internal data */
     int done;
     const char *errstr;
 };
@@ -69,7 +69,7 @@ This structure holds a number of members to represent the state of the FASTA par
 
 ```c
 struct pfasta_record {
-	char *name, *comment, *sequence;
+    char *name, *comment, *sequence;
     size_t name_length, comment_length, sequence_length;
 };
 ```
@@ -97,7 +97,13 @@ void pfasta_record_free( struct pfasta_record *);
 
 These two functions free the resources allocated by the structures above.
 
-If `PFASTA_NO_THREADS` is defined, the parser is not fully thread safe.
+If the preprocessor macro `PFASTA_NO_THREADS` is defined, the parser is not fully thread safe. It probably also is not thread safe with older compilers.
+
+```c
+const char *pfasta_version(void);
+```
+
+Get a string defining the version of the pfasta library.
 
 ## Releases
 
