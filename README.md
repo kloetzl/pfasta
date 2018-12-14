@@ -4,14 +4,14 @@
 
 ## Compilation and Installation
 
-On Linux, compilation requires [libbsd](https://libbsd.freedesktop.org/wiki/). It may not be required on other systems.
+Compilation is simple.
 
     git clone https://github.com/kloetzl/pfasta.git
     cd pfasta
-    make WITH_LIBBSD=1
+    make
     sudo make install
 
-To change the installation directory use `make DESTDIR=/usr/local install`.
+For increased error handling compile with [libbsd](https://libbsd.freedesktop.org/wiki/) support `make WITH_LIBBSD=1`. To change the installation directory use `make DESTDIR=/usr/local install`.
 
 ## Tool Set
 
@@ -55,7 +55,7 @@ A FASTA file contains one or more sequences. Each sequence consists of a header 
 
 ### API Usage
 
-To use the parser in your own tools, install the library and `#include<pfasta.h>`. You then have access to a number of simple functions to setup a parser and use it on files. For a complete example on their usage see [tools/gc_content.c](tools/gc_content.c). Don't forget to link with `-lpfasta`.
+To use the parser in your own tools, install the library and `#include <pfasta.h>`. You then have access to a number of simple functions to setup a parser and use it on files. For a complete example on their usage see [tools/gc_content.c](tools/gc_content.c). Don't forget to link with `-lpfasta`.
 
 ```c
 struct pfasta_parser {
