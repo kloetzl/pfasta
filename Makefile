@@ -136,7 +136,7 @@ fuzzer: test/fuzz.c src/pfasta.c
 	clang -fsanitize=fuzzer -I src -o $@ $^
 
 clang-format:
-	clang-format -i tools/*.c src/*.c src/*.h
+	clang-format -i tools/*.c tools/*.h src/*.c src/*.h
 
 
 XFAIL= $(wildcard test/xfail*)
