@@ -7,6 +7,12 @@
 #include <string.h>
 #include <unistd.h>
 
+#ifdef __APPLE__
+#include <mach-o/dyld.h>
+
+char *get_self_path_mac();
+#endif
+
 struct description {
 	char *name, *text;
 };
@@ -81,6 +87,13 @@ int main(int argc, char *const *argv) {
 		path = tool_is_exec(dir, tool);
 	}
 
+#ifdef __APPLE__
+	if (!path) {
+		const char *dir = get_self_path_mac();
+		path = tool_is_exec(dir, tool);
+	}
+#endif
+
 	int check = execv(path, argv);
 	if (check == -1) err(errno, "%s: executing failed", tool);
 
@@ -124,6 +137,25 @@ char *get_self_path() {
 
 	return strdup(buffer);
 }
+
+#ifdef __APPLE__
+char *get_self_path_mac(void) {
+	char buffer[1024];
+	uint32_t size = sizeof(buffer);
+	int check = _NSGetExecutablePath(buffer, &size);
+
+	if (check) {
+		if (FLAGS & F_VERBOSE) warn("getting own path failed (mac)");
+		return NULL;
+	}
+
+	char *str = malloc(size);
+	realpath(buffer, str);
+	str = dirname(str); // memory leak
+
+	return strdup(str);
+}
+#endif
 
 void list() {
 	const struct description *desc = descriptions;
