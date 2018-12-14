@@ -33,8 +33,8 @@ void sv_emplace(struct pfasta_record pr) {
 	if (sv.size < sv.capacity) {
 		sv.data[sv.size++] = pr;
 	} else {
-		sv.data = reallocarray(sv.data, sv.capacity / 2,
-		                       3 * sizeof(struct pfasta_record));
+		sv.data = my_reallocarray(sv.data, sv.capacity / 2,
+		                          3 * sizeof(struct pfasta_record));
 		if (!sv.data) err(errno, "realloc failed");
 		// reallocarray would return NULL, if mult would overflow
 		sv.capacity = (sv.capacity / 2) * 3;
@@ -67,7 +67,7 @@ int main(int argc, char *argv[]) {
 		case 'L': {
 			const char *errstr;
 
-			line_length = strtonum(optarg, 0, INT_MAX, &errstr);
+			line_length = my_strtonum(optarg, 0, INT_MAX, &errstr);
 			if (errstr) errx(1, "line length is %s: %s", errstr, optarg);
 
 			if (!line_length) line_length = INT_MAX;
@@ -76,7 +76,7 @@ int main(int argc, char *argv[]) {
 		case 's': {
 			const char *errstr;
 
-			seed = strtonum(optarg, 0, UINT_MAX, &errstr);
+			seed = my_strtonum(optarg, 0, UINT_MAX, &errstr);
 			if (errstr) errx(1, "seed is %s: %s", errstr, optarg);
 
 			break;

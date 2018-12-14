@@ -7,6 +7,7 @@
 #include <string.h>
 #include <time.h>
 
+#include "common.h"
 #include "pcg_basic.h"
 
 void usage(int exit_code);
@@ -35,7 +36,7 @@ int main(int argc, char *argv[]) {
 		case 'l': {
 			const char *errstr;
 
-			length = strtonum(optarg, 1, INT_MAX, &errstr);
+			length = my_strtonum(optarg, 1, INT_MAX, &errstr);
 			if (errstr) errx(1, "length is %s: %s", errstr, optarg);
 
 			break;
@@ -43,7 +44,7 @@ int main(int argc, char *argv[]) {
 		case 'L': {
 			const char *errstr;
 
-			line_length = strtonum(optarg, 0, INT_MAX, &errstr);
+			line_length = my_strtonum(optarg, 0, INT_MAX, &errstr);
 			if (errstr) errx(1, "line length is %s: %s", errstr, optarg);
 
 			if (!line_length) line_length = INT_MAX;
@@ -55,7 +56,7 @@ int main(int argc, char *argv[]) {
 		case 's': {
 			const char *errstr;
 
-			seed = strtonum(optarg, 0, INT_MAX, &errstr);
+			seed = my_strtonum(optarg, 0, INT_MAX, &errstr);
 			if (errstr) errx(1, "seed is %s: %s", errstr, optarg);
 
 			break;

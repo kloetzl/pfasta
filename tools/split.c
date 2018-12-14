@@ -30,7 +30,7 @@ int main(int argc, char **argv) {
 		case 'L': {
 			const char *errstr;
 
-			line_length = strtonum(optarg, 0, INT_MAX, &errstr);
+			line_length = my_strtonum(optarg, 0, INT_MAX, &errstr);
 			if (errstr) errx(1, "line length is %s: %s", errstr, optarg);
 
 			if (!line_length) line_length = INT_MAX;

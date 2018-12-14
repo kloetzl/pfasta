@@ -8,6 +8,7 @@
 #include <string.h>
 #include <unistd.h>
 
+#include "common.h"
 #include "pfasta.h"
 
 void usage(int exit_code);
@@ -49,7 +50,7 @@ void process(const char *file_name) {
 	    strcmp(file_name, "-") == 0 ? STDIN_FILENO : open(file_name, O_RDONLY);
 	if (file_descriptor < 0) err(1, "%s", file_name);
 
-	size_t *array = reallocarray(NULL, 61, sizeof(*array));
+	size_t *array = my_reallocarray(NULL, 61, sizeof(*array));
 	size_t capacity = 61;
 	size_t used = 0;
 
@@ -61,7 +62,8 @@ void process(const char *file_name) {
 		if (pp.errstr) errx(2, "%s: %s", file_name, pp.errstr);
 
 		if (used >= capacity) {
-			size_t *neu = reallocarray(array, capacity / 2, sizeof(*array) * 3);
+			size_t *neu =
+			    my_reallocarray(array, capacity / 2, sizeof(*array) * 3);
 			if (!neu) err(errno, "oom");
 			array = neu;
 			capacity = (capacity / 2) * 3;

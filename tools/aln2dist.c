@@ -7,6 +7,7 @@
 #include <string.h>
 #include <unistd.h>
 
+#include "common.h"
 #include "pfasta.h"
 
 void usage(int exit_code);
@@ -34,8 +35,8 @@ void sv_emplace(struct pfasta_record ps) {
 	if (sv.size < sv.capacity) {
 		sv.data[sv.size++] = ps;
 	} else {
-		sv.data = reallocarray(sv.data, sv.capacity / 2,
-		                       3 * sizeof(struct pfasta_record));
+		sv.data = my_reallocarray(sv.data, sv.capacity / 2,
+		                          3 * sizeof(struct pfasta_record));
 		if (!sv.data) err(errno, "realloc failed");
 		// reallocarray would return NULL, if mult would overflow
 		sv.capacity = (sv.capacity / 2) * 3;
