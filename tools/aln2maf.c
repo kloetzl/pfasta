@@ -104,11 +104,11 @@ void process(const char *file_name, struct seq_vector *sv) {
 
 	sv_init(sv);
 
-	ssize_t length = -1;
+	size_t length = 0;
 	while (!pp.done) {
 		struct pfasta_record pr = pfasta_read(&pp);
 		if (pp.errstr) errx(2, "%s: %s", file_name, pp.errstr);
-		if (length < 0) length = pr.sequence_length;
+		if (length == 0) length = pr.sequence_length;
 		if (length != pr.sequence_length) {
 			errx(3, "File %s contains sequences of unequal length", file_name);
 		}
