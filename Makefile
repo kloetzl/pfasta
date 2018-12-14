@@ -10,6 +10,7 @@ MANDIR?=$(DESTDIR)/share/man
 VALIDATE?=./validate
 FORMAT?=./format
 WITH_LIBBSD?=0
+SHELL=/bin/bash
 
 SONAME=libpfasta.so.$(SOVERSION)
 CFLAGS?= -O2 -g -std=gnu11 -ggdb -fPIC -finline-functions
