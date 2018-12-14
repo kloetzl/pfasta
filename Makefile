@@ -25,6 +25,15 @@ CPPFLAGS+=-isystem $(LIBBSDINCLUDEDIR) -DLIBBSD_OVERLAY
 LIBS+=-lbsd
 endif
 
+UNAME_S=$(shell uname -s)
+ifeq ($(UNAME_S),Linux)
+	FLAG_DYNAMIC=-Wl,-soname,$(SONAME)
+endif
+ifeq ($(UNAME_S),Darwin)
+	FLAG_DYNAMIC=-dynamic
+	CFLAGS_MACOS=-Wl,-U,_strtonum
+endif
+
 TOOLS=\
 	acgt \
 	aln2dist \
@@ -67,7 +76,7 @@ all: $(TOOLS) $(SONAME) $(MANS)
 sim: tools/pcg_basic.o tools/sim.o
 
 $(TOOLS): %: tools/common.o tools/%.o libpfasta.a
-	$(CC) $(CFLAGS) -o $@ $^ $(LIBS) -L. -lpfasta
+	$(CC) $(CFLAGS) $(CFLAGS_MACOS) -o $@ $^ $(LIBS) -L. -lpfasta
 
 libpfasta.a: libpfasta.o
 	$(AR) -crvs $@ $^
@@ -77,7 +86,7 @@ libpfasta.o: src/pfasta.c
 	$(CC) $(CPPFLAGS) $(CFLAGS) -fPIC -c $^ -o $@
 
 $(SONAME): libpfasta.o
-	$(CC) -shared -Wl,-soname,$@ -o $@ $^
+	$(CC) $(FLAG_DYNAMIC) -shared -o $@ $^
 
 $(MANS): %: man/%.in
 	cat $^ | sed 's/VERSION/$(VERSION)/' > $@
