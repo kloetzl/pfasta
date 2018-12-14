@@ -161,7 +161,7 @@ void print_seq(double divergence) {
 }
 
 void usage(int exit_code) {
-	static const char *str = {
+	static const char str[] = {
 	    "sim [-l length] [-L line length] [-d dist] [-s seed]\n"
 	    "Simulate a set of genomic sequences.\n\n"
 	    "Options:\n"
