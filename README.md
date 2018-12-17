@@ -59,9 +59,9 @@ To use the parser in your own tools, install the library and `#include <pfasta.h
 
 ```c
 struct pfasta_parser {
-    /* internal data */
-    int done;
     const char *errstr;
+    int done;
+    /* internal data */
 };
 ```
 
