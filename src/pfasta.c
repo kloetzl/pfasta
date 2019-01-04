@@ -45,7 +45,7 @@
 
 thread_local char errstr_buffer[PF_ERROR_STRING_LENGTH];
 
-void *reallocarray(void *ptr, size_t nmemb, size_t size);
+void *pfasta_reallocarray(void *ptr, size_t nmemb, size_t size);
 
 #define BUFFER_SIZE 16384
 
@@ -518,7 +518,7 @@ static inline int dynstr_append(dynstr *ds, const char *str, size_t length,
 	size_t required = ds->count + length;
 
 	if (UNLIKELY(required >= ds->capacity)) {
-		char *neu = reallocarray(ds->str, required / 2, 3);
+		char *neu = pfasta_reallocarray(ds->str, required / 2, 3);
 		if (UNLIKELY(!neu)) {
 			dynstr_free(ds);
 			PF_FAIL_ERRNO(pp);
@@ -549,7 +549,7 @@ static inline void dynstr_free(dynstr *ds) {
  * @returns a `char*` to a standard null-terminated string.
  */
 static inline char *dynstr_move(dynstr *ds) {
-	char *out = reallocarray(ds->str, ds->count + 1, 1);
+	char *out = pfasta_reallocarray(ds->str, ds->count + 1, 1);
 	if (!out) {
 		out = ds->str;
 	}
@@ -561,9 +561,15 @@ static inline char *dynstr_move(dynstr *ds) {
 /** @brief Returns the current length of the dynamic string. */
 static inline size_t dynstr_len(const dynstr *ds) { return ds->count; }
 
+__attribute__((weak)) void *reallocarray(void *ptr, size_t nmemb, size_t size);
+
 /**
  * @brief Unsafe fallback in case reallocarray isn't provided by the stdlib.
  */
-__attribute__((weak)) void *reallocarray(void *ptr, size_t nmemb, size_t size) {
-	return realloc(ptr, nmemb * size);
+void *pfasta_reallocarray(void *ptr, size_t nmemb, size_t size) {
+	if (reallocarray == NULL) {
+		return realloc(ptr, nmemb * size);
+	} else {
+		return reallocarray(ptr, nmemb, size);
+	}
 }

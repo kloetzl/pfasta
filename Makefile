@@ -31,7 +31,7 @@ ifeq ($(UNAME_S),Linux)
 endif
 ifeq ($(UNAME_S),Darwin)
 	FLAG_DYNAMIC=-dynamic
-	CFLAGS_MACOS=-Wl,-U,_strtonum
+	CFLAGS_MACOS=-Wl,-U,_strtonum -Wl,-U,_reallocarray
 endif
 
 TOOLS=\
