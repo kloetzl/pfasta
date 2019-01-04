@@ -86,7 +86,7 @@ libpfasta.o: src/pfasta.c
 	$(CC) $(CPPFLAGS) $(CFLAGS) -fPIC -c $^ -o $@
 
 $(SONAME): libpfasta.o
-	$(CC) $(FLAG_DYNAMIC) -shared -o $@ $^
+	$(CC) $(FLAG_DYNAMIC) $(CFLAGS_MACOS) -shared -o $@ $^
 
 $(MANS): %: man/%.in
 	cat $^ | sed 's/VERSION/$(VERSION)/' > $@
