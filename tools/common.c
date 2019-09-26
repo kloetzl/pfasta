@@ -8,7 +8,7 @@
 
 int pfasta_print(int file_descriptor, const struct pfasta_record *pr,
                  int line_length) {
-	if (file_descriptor < 0 || !pr || line_length <= 0) {
+	if (file_descriptor < 0 || !pr) {
 		errno = EINVAL;
 		return -EINVAL;
 	}

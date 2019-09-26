@@ -70,7 +70,7 @@ int main(int argc, char *argv[]) {
 			line_length = my_strtonum(optarg, 0, INT_MAX, &errstr);
 			if (errstr) errx(1, "line length is %s: %s", errstr, optarg);
 
-			if (!line_length) line_length = INT_MAX;
+			if (!line_length) line_length = -1;
 			break;
 		}
 		case 's': {
