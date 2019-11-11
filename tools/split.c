@@ -13,6 +13,7 @@
 static int line_length = 70;
 static char *suffix = ".fasta";
 static char *outdir = "./";
+static int append = 0;
 
 void usage(int exit_code);
 void process(const char *file_name);
@@ -20,13 +21,16 @@ void process(const char *file_name);
 int main(int argc, char **argv) {
 
 	int c;
-	while ((c = getopt(argc, argv, "hd:L:s:")) != -1) {
+	while ((c = getopt(argc, argv, "ad:hL:s:")) != -1) {
 		switch (c) {
-		case 'h':
-			usage(EXIT_SUCCESS);
+		case 'a':
+			append = 1;
+			break;
 		case 'd':
 			outdir = optarg;
 			break;
+		case 'h':
+			usage(EXIT_SUCCESS);
 		case 'L': {
 			const char *errstr;
 
@@ -81,7 +85,7 @@ void process(const char *file_name) {
 			err(errno, "building output path failed");
 		}
 
-		FILE *output = fopen(out_file_name, "a+");
+		FILE *output = fopen(out_file_name, append ? "a" : "w");
 		if (output == NULL) {
 			err(errno, "couldn't open file %s", out_file_name);
 		}
@@ -103,8 +107,9 @@ void usage(int exit_code) {
 	    "Usage: split [OPTIONS...] [FILE...]\n"
 	    "Split a FASTA file into one per contained sequence. \n\n"
 	    "Options:\n"
-	    "  -h         Display help and exit\n"
+	    "  -a         Append to existing files\n"
 	    "  -d DIR     Set the directory to put the new files in\n"
+	    "  -h         Display help and exit\n"
 	    "  -s SUFFIX  Set the file suffix (default: '.fasta')\n"
 	    "  -L num     Set the maximum line length (0 to disable)\n"};
 
