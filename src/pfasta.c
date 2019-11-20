@@ -255,7 +255,8 @@ size_t count_newlines(const char *begin, const char *end) {
 static int copy_word(struct pfasta_parser *pp, dynstr *target) {
 	int return_code = 0;
 
-	while (LIKELY(!my_isspace(buffer_peek(pp)))) {
+	int c;
+	while (c = buffer_peek(pp), c != EOF && LIKELY(!my_isspace(c))) {
 		char *end_of_word = find_first_space(buffer_begin(pp), buffer_end(pp));
 		size_t word_length = end_of_word - buffer_begin(pp);
 
