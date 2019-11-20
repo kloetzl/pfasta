@@ -143,7 +143,7 @@ clean:
 	$(RM) *.1
 
 fuzzer: test/fuzz.c src/pfasta.c
-	clang -fsanitize=fuzzer -I src -o $@ $^
+	clang -fsanitize=fuzzer -I src $(CFLAGS) $(CPPFLAGS) -o $@ $^
 
 clang-format:
 	clang-format -i tools/*.c tools/*.h src/*.c src/*.h
