@@ -157,7 +157,7 @@ cleanup:
 }
 
 int buffer_peek(struct pfasta_parser *pp) {
-	return LIKELY(pp->read_ptr < pp->fill_ptr) ? *pp->read_ptr : EOF;
+	return LIKELY(pp->read_ptr < pp->fill_ptr) ? *(unsigned char*)pp->read_ptr : EOF;
 }
 
 char *buffer_begin(struct pfasta_parser *pp) { return pp->read_ptr; }
