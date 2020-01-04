@@ -38,6 +38,7 @@ TOOLS=\
 	acgt \
 	aln2dist \
 	aln2maf \
+	bootstrap \
 	cchar \
 	concat \
 	fancy_info \

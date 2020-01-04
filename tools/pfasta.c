@@ -26,6 +26,7 @@ static const struct description descriptions[] = {
     {"acgt", "Filter the nucleotides."},
     {"aln2dist", "Compute sequence distances from an alignment."},
     {"aln2maf", "Convert an alignment to the Multiple Alignment Format (MAF)."},
+    {"bootstrap", "Produce bootstrap replicates."},
     {"cchar", "Count the residues."},
     {"concat", "Concatenate multiple Fasta files into one sequence."},
     {"fancy_info", "Print a fancy report."},
