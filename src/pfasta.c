@@ -438,7 +438,9 @@ int pfasta_read_sequence(struct pfasta_parser *pp, struct pfasta_record *pr) {
 		PF_FAIL_STR(pp, "Empty sequence on line %zu.", pp->line_number);
 	PF_FAIL_BUBBLE_CHECK(pp, check);
 
-	while (LIKELY(isalpha(buffer_peek(pp)))) {
+	// Assume a line begins only with alpha, -, *, or more spaces
+	char c;
+	while (c = buffer_peek(pp), LIKELY(isalpha(c) || c == '-' || c == '*')) {
 		int check = copy_word(pp, &sequence);
 		if (UNLIKELY(check == E_EOF)) break;
 		PF_FAIL_BUBBLE_CHECK(pp, check);
