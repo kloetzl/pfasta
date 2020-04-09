@@ -49,9 +49,9 @@ can do wrong when trying to parse a FASTA file in C. `pfasta` was designed with 
 A FASTA file contains one or more sequences. Each sequence consists of a header line with a name and an optional comment. Then follow multiple lines with the data. Here is a regex explaining what sequences are considered valid.
 
     >[^[:space:]]+([^\n]*)\n
-    ([^[:space:]]*[[:space:]]*)+
+    ([-*a-zA-Z][^[:space:]]*[[:space:]]*)+
 
-`[:graph:]` refers to the character class defined by the respective C function `isgraph(3)`.
+`[:space:]` refers to the character class defined by the respective C function `isspace(3)`.
 
 ### API Usage
 
