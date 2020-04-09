@@ -80,7 +80,8 @@ int main(int argc, char *argv[]) {
 			const char *errstr;
 
 			replicates = my_strtonum(optarg, 0, UINT_MAX, &errstr);
-			if (errstr) errx(1, "number of replicates is %s: %s", errstr, optarg);
+			if (errstr)
+				errx(1, "number of replicates is %s: %s", errstr, optarg);
 
 			break;
 		}
@@ -127,7 +128,7 @@ int main(int argc, char *argv[]) {
 			int random;
 			do { // fixing sampling bias
 				random = rand();
-			} while(random >= threshold);
+			} while (random >= threshold);
 
 			map[i] = random % length;
 		}
@@ -135,7 +136,8 @@ int main(int argc, char *argv[]) {
 		struct pfasta_record pr = {};
 
 		snprintf(buf, sizeof(buf), "replicate-%u.fa", b);
-		int fd = open(buf, O_WRONLY | O_CREAT, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
+		int fd = open(buf, O_WRONLY | O_CREAT,
+		              S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
 
 		for (size_t i = 0; i < sv.size; i++) {
 			memcpy(&pr, &sv.data[i], sizeof(pr));
